@@ -1,0 +1,97 @@
+import React, { useEffect, useState } from "react";
+
+export default function AdminRequests() {
+  const [requests, setRequests] = useState([]);
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  async function loadRequests() {
+    try {
+      const response = await 
+fetch("http://localhost:3000/api/service-requests");
+      const data = await response.json();
+      setRequests(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function updateRequestStatus(id, action) {
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/service-requests/${id}/${action}`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "Unable to update request");
+        return;
+      }
+
+      loadRequests();
+      alert(`Request ${action}d successfully`);
+    } catch (error) {
+      console.error(error);
+      alert("Unable to update request");
+    }
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <div>
+          <h1>Admin Requests</h1>
+          <p>Review, approve, or reject client service requests.</p>
+        </div>
+      </div>
+
+      <section className="panel">
+        <h2>Service Requests</h2>
+
+        {requests.length === 0 ? (
+          <p>No service requests found.</p>
+        ) : (
+          requests.map((request) => (
+            <div key={request.id} className="row">
+              <div>
+                <strong>#{request.id} — {request.projectTitle}</strong>
+                <br />
+                <small>
+                  {request.serviceGroup} • {request.businessName}
+                </small>
+                <br />
+                <small>{request.email}</small>
+              </div>
+
+              <div className="table-actions">
+                <small>{request.status}</small>
+
+                <button
+                  className="view-btn"
+                  onClick={() => updateRequestStatus(request.id, 
+"approve")}
+                >
+                  Approve
+                </button>
+
+                <button
+                  className="delete-btn"
+                  onClick={() => updateRequestStatus(request.id, 
+"reject")}
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </section>
+    </div>
+  );
+}

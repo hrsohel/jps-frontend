@@ -1,0 +1,78 @@
+import QuickActionCard from "../components/QuickActionCard";
+import ProjectCard from "../components/ProjectCard";
+import ServiceCard from "../components/ServiceCard";
+import React 
+from "react";
+import PageHeader from "../components/PageHeader";
+import StatsCard from "../components/StatsCard";
+<section className="two-col">
+  <QuickActionCard
+    title="Request Service"
+    description="Submit a new service request to the JPS team."
+    buttonText="Get Started"
+  />
+
+  <QuickActionCard
+    title="Upload Files"
+    description="Share logos, artwork, documents, and project files."
+    buttonText="Upload Files"
+  />
+</section>
+
+export default function Dashboard() {
+  return (
+    <div>
+      <PageHeader
+        title="Dashboard"
+        description="Manage your projects, service requests, invoices, appointments, files, and support tickets from one location."
+        actions={
+          <button className="green-btn">
+            Schedule Appointment
+          </button>
+        }
+      />
+
+      <section className="stats-grid">
+        <StatsCard title="Active Projects" value="6" description="2 awaiting review" />
+        <StatsCard title="Invoices Due" value="$2,540" description="3 pending invoices" />
+        <StatsCard title="Support Tickets" value="2" description="Awaiting reply" />
+        <StatsCard title="Appointments" value="1" description="Upcoming consultation" />
+      </section>
+
+      <section className="panel">
+        <h2>Welcome to JPS Support Services</h2>
+        <p>
+          Your digital business partner for website development,
+          digital marketing, branding & signs, and IT solutions.
+        </p>
+
+        <div className="card-actions">
+          <button>Request Service</button>
+          <button className="outline">Upload Files</button>
+          <button className="green-btn">Schedule Appointment</button>
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>My Projects</h2>
+        <p>Monitor active projects and review progress updates.</p>
+
+        <div className="row">
+          <span>Website Redesign</span>
+          <small>75% Complete</small>
+        </div>
+
+        <div className="row">
+          <span>SEO Campaign</span>
+          <small>45% Complete</small>
+        </div>
+
+        <div className="row">
+          <span>Store Sign Installation</span>
+          <small>20% Complete</small>
+        </div>
+      </section>
+    </div>
+  );
+}
+
