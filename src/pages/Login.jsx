@@ -1,4 +1,12 @@
 import { useState } from "react";
+import { Eye, EyeOff, CheckCircle2 } from "lucide-react";
+
+const features = [
+  "Track your projects in real time",
+  "View invoices & make payments",
+  "Communicate with your team",
+  "Manage appointments & files",
+];
 
 export default function Login({ setPage, setUser }) {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -17,7 +25,6 @@ export default function Login({ setPage, setUser }) {
 
     try {
       setLoading(true);
-
       const response = await fetch(
         `${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/auth/login`,
         {
@@ -26,20 +33,16 @@ export default function Login({ setPage, setUser }) {
           body: JSON.stringify(form),
         }
       );
-
       const data = await response.json();
-
       if (!response.ok) {
         setError(data.error || "Login failed. Please check your credentials.");
         return;
       }
-
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       setUser(data.user);
       setPage("Dashboard");
-    } catch (error) {
-      console.error(error);
+    } catch {
       setError("Server error. Please try again.");
     } finally {
       setLoading(false);
@@ -47,81 +50,115 @@ export default function Login({ setPage, setUser }) {
   }
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1>Welcome Back</h1>
-          <p>Sign in and start building your business growth</p>
+    <div className="auth-split">
+      {/* ── Left branding panel ── */}
+      <div className="auth-brand">
+        <div className="auth-brand-inner">
+          <img
+            src="/assets/jps-support-services-primary-logo.png"
+            alt="JPS Support Services"
+            className="auth-logo"
+          />
+          <h1 className="auth-brand-headline">
+            Your Business,<br />Our Priority.
+          </h1>
+          <p className="auth-brand-sub">
+            The all-in-one client portal built for businesses that want to grow with confidence.
+          </p>
+          <ul className="auth-features">
+            {features.map((f) => (
+              <li key={f}>
+                <CheckCircle2 size={18} />
+                {f}
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          {error && (
-            <div
-              style={{
-                background: "#fef2f2",
-                border: "1px solid #ef4444",
-                borderRadius: "8px",
-                padding: "12px",
-                color: "#dc2626",
-                marginBottom: "12px",
-              }}
-            >
-              {error}
-            </div>
-          )}
+        {/* decorative blobs */}
+        <div className="auth-blob auth-blob-1" />
+        <div className="auth-blob auth-blob-2" />
+      </div>
 
-          <label>
-            Email Address
-            <input
-              type="email"
-              placeholder="Enter your email address"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-          </label>
+      {/* ── Right form panel ── */}
+      <div className="auth-form-panel">
+        <div className="auth-form-wrap">
+          <div className="auth-form-header">
+            <h2>Welcome Back</h2>
+            <p>Sign in to access your client portal</p>
+          </div>
 
-          <label>
-            Password
-            <div className="password-field">
+          <form onSubmit={handleSubmit} className="auth-form">
+            {error && (
+              <div className="auth-error">
+                {error}
+              </div>
+            )}
+
+            <div className="auth-field">
+              <label>Email Address</label>
               <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                type="email"
+                placeholder="you@company.com"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                autoComplete="email"
               />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? "Hide" : "View"}
-              </button>
             </div>
-          </label>
 
-          <button
-            type="button"
-            className="link-button"
-            style={{ textAlign: "left" }}
-            onClick={() => setPage("Forgot Password")}
-          >
-            Forgot Password?
-          </button>
+            <div className="auth-field">
+              <div className="auth-field-row">
+                <label>Password</label>
+                <button
+                  type="button"
+                  className="auth-forgot"
+                  onClick={() => setPage("Forgot Password")}
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <div className="auth-password-wrap">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="auth-eye"
+                  onClick={() => setShowPassword((v) => !v)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+            </div>
 
-          <button className="primary-btn" disabled={loading}>
-            {loading ? "Signing In..." : "Login"}
-          </button>
-        </form>
+            <button className="auth-submit" type="submit" disabled={loading}>
+              {loading ? (
+                <span className="auth-spinner" />
+              ) : (
+                "Sign In"
+              )}
+            </button>
+          </form>
 
-        <div className="auth-footer">
-          <p>Don't have an account?</p>
-          <button
-            type="button"
-            className="link-button"
-            onClick={() => setPage("Create Account")}
-          >
-            Create Account
-          </button>
+          <p className="auth-switch">
+            Don't have an account?{" "}
+            <button
+              type="button"
+              className="auth-switch-link"
+              onClick={() => setPage("Create Account")}
+            >
+              Create Account
+            </button>
+          </p>
+
+          <p className="auth-copyright">
+            © {new Date().getFullYear()} JPS Support Services. All rights reserved.
+          </p>
         </div>
       </div>
     </div>

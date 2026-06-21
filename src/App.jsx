@@ -349,6 +349,12 @@ export default function App() {
     );
   }
 
+  // Auth pages render full-screen without sidebar/topbar
+  const AUTH_PAGES = ["Login", "Create Account", "Forgot Password", "Reset Password"];
+  if (AUTH_PAGES.includes(page)) {
+    return <>{renderPage()}</>;
+  }
+
   return (
     <main className="app">
       <Sidebar
