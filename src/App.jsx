@@ -15,6 +15,7 @@ import {
   Megaphone,
   Wrench,
   ClipboardList,
+  History,
 } from "lucide-react";
 
 import DashboardPage from "./pages/Dashboard";
@@ -39,6 +40,7 @@ import AdminRequests from "./pages/AdminRequests";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import MessagesPage from "./pages/Messages";
+import MessageLogPage from "./pages/MessageLog";
 import { apiGet, apiPatch } from "./lib/api";
 
 const ADMIN_ROLES = ["ADMIN"];
@@ -78,6 +80,7 @@ function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessage
     ["Files & Documents", FileUp],
     ["Appointments", CalendarDays],
     ["Messages", MessageSquare],
+    ["Message Log", History],
     ["Email Campaigns", Megaphone],
     ["Admin Services", Wrench],
     ["Admin Requests", ClipboardList],
@@ -274,7 +277,7 @@ export default function App() {
       return <AccessDenied />;
     }
 
-    if (page === "Dashboard") return <DashboardPage user={user} />;
+    if (page === "Dashboard") return <DashboardPage user={user} setPage={setPage} />;
     if (page === "Request Service") return <ServiceRequestsPage user={user} />;
     if (page === "Services") return <ServicesPage setPage={setPage} />;
     if (page === "Projects") {
@@ -315,6 +318,7 @@ export default function App() {
     if (page === "Files & Documents") return <FilesPage user={user} />;
     if (page === "Appointments") return <AppointmentsPage user={user} />;
     if (page === "Messages") return <MessagesPage user={user} />;
+    if (page === "Message Log") return <MessageLogPage />;
     if (page === "Settings") return <SettingsPage setPage={setPage} user={user} />;
     if (page === "Change Password") return <ChangePassword user={user} />;
     if (page === "Email Campaigns") return <CampaignsPage />;

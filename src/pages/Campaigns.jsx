@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import PageHeader from "../components/PageHeader";
 import Pagination, { usePagination } from "../components/Pagination";
-import { apiGet, apiPost, apiPatch, apiDelete } from "../lib/api";
+import { apiGet, apiPost, apiPatch, apiDelete, apiUpload } from "../lib/api";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -31,6 +31,12 @@ export default function CampaignsPage() {
   const [recipients, setRecipients] = useState([]);
   const [sending, setSending] = useState(false);
 
+  // Recipient targeting: "segment" | "all" | "specific"
+  const [recipientMode, setRecipientMode] = useState("segment");
+  const [allRecipients, setAllRecipients] = useState([]);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+
   // Templates state
   const [templates, setTemplates] = useState([]);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
@@ -50,6 +56,7 @@ export default function CampaignsPage() {
     loadCampaignLogs();
     loadTemplates();
     loadServiceGroups();
+    loadAllRecipients();
   }, []);
 
   async function loadStats() {
@@ -92,6 +99,34 @@ export default function CampaignsPage() {
       const data = await apiGet(`/users/segment/${encodeURIComponent(seg)}`);
       setRecipients(Array.isArray(data) ? data : []);
     } catch (e) { setRecipients([]); }
+  }
+
+  async function loadAllRecipients() {
+    try {
+      const data = await apiGet("/users/recipients");
+      setAllRecipients(Array.isArray(data) ? data : []);
+    } catch (e) { setAllRecipients([]); }
+  }
+
+  function toggleSelectedUser(id) {
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  async function handleBannerUpload(file) {
+    if (!file) return;
+    setUploadingBanner(true);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const { url } = await apiUpload("/upload/image", fd);
+      setCampaignForm((prev) => ({ ...prev, bannerImage: url }));
+    } catch (e) {
+      alert(e.message || "Image upload failed");
+    } finally {
+      setUploadingBanner(false);
+    }
   }
 
   // ── Templates CRUD ──────────────────────────────────────────────
@@ -146,6 +181,8 @@ export default function CampaignsPage() {
     setEditingCampaign(null);
     setCampaignForm(EMPTY_CAMPAIGN);
     setRecipients([]);
+    setRecipientMode("segment");
+    setSelectedUserIds([]);
     setShowCampaignForm(true);
   }
 
@@ -197,12 +234,32 @@ export default function CampaignsPage() {
   }
 
   async function sendCampaign() {
-    if (!campaignForm.segment || campaignForm.segment === "All") { alert("Select a specific segment to send."); return; }
-    if (recipients.length === 0) { alert("No recipients found for this segment."); return; }
-    if (!confirm(`Send to ${recipients.length} recipient(s) in "${campaignForm.segment}"?`)) return;
+    if (!campaignForm.subject.trim()) { alert("Email subject is required."); return; }
+
+    let endpoint, payload, confirmMsg;
+
+    if (recipientMode === "all") {
+      if (allRecipients.length === 0) { alert("No active users to send to."); return; }
+      confirmMsg = `Send to ALL ${allRecipients.length} active user(s)?`;
+      endpoint = "/email/send-bulk";
+      payload = { campaignName: campaignForm.name, subject: campaignForm.subject, html: buildHtml(), all: true };
+    } else if (recipientMode === "specific") {
+      if (selectedUserIds.length === 0) { alert("Select at least one user to send to."); return; }
+      confirmMsg = `Send to ${selectedUserIds.length} selected user(s)?`;
+      endpoint = "/email/send-bulk";
+      payload = { campaignName: campaignForm.name, subject: campaignForm.subject, html: buildHtml(), userIds: selectedUserIds };
+    } else {
+      if (!campaignForm.segment || campaignForm.segment === "All") { alert("Select a specific segment to send."); return; }
+      if (recipients.length === 0) { alert("No recipients found for this segment."); return; }
+      confirmMsg = `Send to ${recipients.length} recipient(s) in "${campaignForm.segment}"?`;
+      endpoint = "/email/send-segment";
+      payload = { campaignName: campaignForm.name, segment: campaignForm.segment, subject: campaignForm.subject, html: buildHtml() };
+    }
+
+    if (!confirm(confirmMsg)) return;
     setSending(true);
     try {
-      const r = await authFetch(`${API_BASE}/email/send-segment`, { method: "POST", body: JSON.stringify({ campaignName: campaignForm.name, segment: campaignForm.segment, subject: campaignForm.subject, html: buildHtml() }) });
+      const r = await authFetch(`${API_BASE}${endpoint}`, { method: "POST", body: JSON.stringify(payload) });
       const d = await r.json();
       if (!r.ok) { alert(d.error || "Send failed"); return; }
       alert(`Sent! Recipients: ${d.recipients} | Delivered: ${d.successCount} | Failed: ${d.failedCount}`);
@@ -375,12 +432,31 @@ export default function CampaignsPage() {
                   <input className="form-select" value={campaignForm.name} onChange={(e) => setCampaignForm({ ...campaignForm, name: e.target.value })} placeholder="e.g. June Website Promo" />
                 </label>
                 <label className="form-label">
-                  Target Segment *
-                  <select className="form-select" value={campaignForm.segment}
-                    onChange={(e) => { setCampaignForm({ ...campaignForm, segment: e.target.value }); loadRecipients(e.target.value); }}>
-                    {segmentOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                  Send To *
+                  <select
+                    className="form-select"
+                    value={recipientMode}
+                    onChange={(e) => {
+                      const mode = e.target.value;
+                      setRecipientMode(mode);
+                      if (mode === "all" || mode === "specific") loadAllRecipients();
+                    }}
+                  >
+                    <option value="segment">A Client Segment</option>
+                    <option value="all">All Active Users</option>
+                    <option value="specific">Specific Users</option>
                   </select>
                 </label>
+
+                {recipientMode === "segment" && (
+                  <label className="form-label">
+                    Target Segment *
+                    <select className="form-select" value={campaignForm.segment}
+                      onChange={(e) => { setCampaignForm({ ...campaignForm, segment: e.target.value }); loadRecipients(e.target.value); }}>
+                      {segmentOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </label>
+                )}
                 <label className="form-label" style={{ gridColumn: "1/-1" }}>
                   Email Subject *
                   <input className="form-select" value={campaignForm.subject} onChange={(e) => setCampaignForm({ ...campaignForm, subject: e.target.value })} placeholder="e.g. Keep your website updated" />
@@ -388,7 +464,7 @@ export default function CampaignsPage() {
               </div>
 
               {/* Recipients preview */}
-              {campaignForm.segment !== "All" && (
+              {recipientMode === "segment" && campaignForm.segment !== "All" && (
                 <div className="campaign-recipients">
                   <strong>{recipients.length} recipient{recipients.length !== 1 ? "s" : ""}</strong> in "{campaignForm.segment}"
                   {recipients.length > 0 && (
@@ -396,6 +472,42 @@ export default function CampaignsPage() {
                       {recipients.slice(0, 3).map((u) => u.fullName).join(", ")}{recipients.length > 3 ? ` +${recipients.length - 3} more` : ""}
                     </span>
                   )}
+                </div>
+              )}
+
+              {recipientMode === "all" && (
+                <div className="campaign-recipients">
+                  <strong>{allRecipients.length} active user{allRecipients.length !== 1 ? "s" : ""}</strong> will receive this email.
+                </div>
+              )}
+
+              {recipientMode === "specific" && (
+                <div className="campaign-recipients" style={{ display: "block" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                    <strong>{selectedUserIds.length} of {allRecipients.length} selected</strong>
+                    <span style={{ display: "flex", gap: "10px" }}>
+                      <button type="button" className="link-btn" onClick={() => setSelectedUserIds(allRecipients.map((u) => u.id))}>Select all</button>
+                      <button type="button" className="link-btn" onClick={() => setSelectedUserIds([])}>Clear</button>
+                    </span>
+                  </div>
+                  <div style={{ maxHeight: "200px", overflowY: "auto", border: "1px solid var(--line)", borderRadius: "8px", padding: "8px" }}>
+                    {allRecipients.length === 0 ? (
+                      <p style={{ color: "#64748b", margin: 0, fontSize: "13px" }}>No active users found.</p>
+                    ) : (
+                      allRecipients.map((u) => (
+                        <label key={u.id} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "4px 2px", fontSize: "13px", cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedUserIds.includes(u.id)}
+                            onChange={() => toggleSelectedUser(u.id)}
+                          />
+                          <span>{u.fullName}</span>
+                          <span style={{ color: "#94a3b8" }}>· {u.email}</span>
+                          <span style={{ color: "#cbd5e1", marginLeft: "auto" }}>{u.segment}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -421,8 +533,20 @@ export default function CampaignsPage() {
                   <input className="form-select" value={campaignForm.buttonLink} onChange={(e) => setCampaignForm({ ...campaignForm, buttonLink: e.target.value })} placeholder="https://" />
                 </label>
                 <label className="form-label" style={{ gridColumn: "1/-1" }}>
-                  Banner Image URL
-                  <input className="form-select" value={campaignForm.bannerImage} onChange={(e) => setCampaignForm({ ...campaignForm, bannerImage: e.target.value })} placeholder="https://yourdomain.com/banner.jpg" />
+                  Banner Image
+                  <input className="form-select" value={campaignForm.bannerImage} onChange={(e) => setCampaignForm({ ...campaignForm, bannerImage: e.target.value })} placeholder="Paste an image URL or upload below" />
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px" }}>
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.gif,.webp"
+                      onChange={(e) => handleBannerUpload(e.target.files[0])}
+                      disabled={uploadingBanner}
+                    />
+                    {uploadingBanner && <small style={{ color: "#64748b" }}>Uploading…</small>}
+                    {campaignForm.bannerImage && !uploadingBanner && (
+                      <button type="button" className="link-btn" onClick={() => setCampaignForm({ ...campaignForm, bannerImage: "" })}>Remove</button>
+                    )}
+                  </div>
                 </label>
               </div>
 

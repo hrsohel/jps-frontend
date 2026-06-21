@@ -1,8 +1,24 @@
 import React, { useEffect, useState } from "react";
+import {
+  Users,
+  Home,
+  ShoppingBag,
+  ReceiptText,
+  DollarSign,
+  Bell,
+  FileUp,
+  CalendarDays,
+  MessageSquare,
+  Megaphone,
+  Wrench,
+  ClipboardList,
+} from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import StatsCard from "../components/StatsCard";
 import ServiceCard from "../components/ServiceCard";
 import { apiGet, apiPost } from "../lib/api";
+
+const STAFF_ROLES = ["ADMIN", "STAFF"];
 
 const STATUS_COLORS = {
   PLANNING:    { bg: "#eff6ff", color: "#1d4ed8", label: "Planning" },
@@ -15,56 +31,60 @@ function statusStyle(status) {
   return STATUS_COLORS[status] || { bg: "#f1f5f9", color: "#475569", label: status };
 }
 
-export default function Dashboard({ user }) {
+const REQUEST_COLORS = {
+  NEW: "#64748b", Approved: "#0E9F6E", APPROVED: "#0E9F6E",
+  Rejected: "#ef4444", REJECTED: "#ef4444",
+};
+
+export default function Dashboard({ user, setPage }) {
+  const isStaff = STAFF_ROLES.includes(user?.role);
+  const isAdmin = user?.role === "ADMIN";
+
   const [serviceGroups, setServiceGroups] = useState([]);
   const [stats, setStats] = useState({
-    projects: 0,
-    requests: 0,
-    invoices: 0,
-    notifications: 0,
-    revenue: 0,
+    projects: 0, requests: 0, invoices: 0, notifications: 0, revenue: 0,
   });
-  const [recentProjects, setRecentProjects] = useState([]);
-  const [loadingStats, setLoadingStats] = useState(true);
+  const [userCount, setUserCount] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadServiceGroups();
-    loadDashboardStats();
-    loadRecentProjects();
+    loadAll();
   }, []);
 
-  async function loadServiceGroups() {
+  async function loadAll() {
+    setLoading(true);
     try {
-      const data = await apiGet("/service-catalog/groups");
-      setServiceGroups(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error(error);
-    }
-  }
+      const calls = [
+        apiGet("/dashboard").catch(() => null),
+        apiGet("/projects").catch(() => []),
+        apiGet("/service-requests").catch(() => []),
+        apiGet("/invoices").catch(() => []),
+        apiGet("/service-catalog/groups").catch(() => []),
+        isAdmin ? apiGet("/users").catch(() => []) : Promise.resolve(null),
+      ];
+      const [dash, proj, reqs, invs, groups, users] = await Promise.all(calls);
 
-  async function loadDashboardStats() {
-    try {
-      const data = await apiGet("/dashboard");
-      setStats({
-        projects: data.projects || 0,
-        requests: data.requests || 0,
-        invoices: data.invoices || 0,
-        notifications: data.notifications || 0,
-        revenue: data.revenue || 0,
-      });
+      if (dash) {
+        setStats({
+          projects: dash.projects || 0,
+          requests: dash.requests || 0,
+          invoices: dash.invoices || 0,
+          notifications: dash.notifications || 0,
+          revenue: dash.revenue || 0,
+        });
+      }
+      setProjects(Array.isArray(proj) ? proj : []);
+      setRequests(Array.isArray(reqs) ? reqs : []);
+      setInvoices(Array.isArray(invs) ? invs : []);
+      setServiceGroups(Array.isArray(groups) ? groups : []);
+      if (Array.isArray(users)) setUserCount(users.length);
     } catch (error) {
       console.error(error);
     } finally {
-      setLoadingStats(false);
-    }
-  }
-
-  async function loadRecentProjects() {
-    try {
-      const data = await apiGet("/projects");
-      setRecentProjects(Array.isArray(data) ? data.slice(0, 3) : []);
-    } catch (error) {
-      console.error(error);
+      setLoading(false);
     }
   }
 
@@ -73,7 +93,6 @@ export default function Dashboard({ user }) {
       alert("Please log in to request a service.");
       return;
     }
-
     try {
       await apiPost("/service-requests", {
         serviceGroup: service.groupName,
@@ -86,79 +105,206 @@ export default function Dashboard({ user }) {
         desiredDate: "",
         description: service.description || "",
       });
-
       alert("Service request created successfully! Our team will review it shortly.");
+      loadAll();
     } catch (error) {
       console.error(error);
       alert(error.message || "Unable to create service request");
     }
   }
 
+  const go = (p) => setPage && setPage(p);
+  const v = (n) => (loading ? "..." : n);
+
+  const pendingRequests = requests.filter((r) => r.status === "NEW");
+  const recentProjects = projects.slice(0, 3);
+  const recentInvoices = invoices.slice(0, 4);
+  const recentRequests = requests.slice(0, 5);
+
   const addOnServices = serviceGroups.flatMap((group) =>
-    (group.services || []).map((service) => ({
-      ...service,
-      groupName: group.name,
-    }))
+    (group.services || []).map((service) => ({ ...service, groupName: group.name }))
   );
+
+  // Quick actions differ by role
+  const quickActions = isStaff
+    ? [
+        { label: "Manage Users", desc: "Roles, segments & access", icon: Users, page: "Users", admin: true },
+        { label: "Review Requests", desc: "Approve & create projects", icon: ClipboardList, page: "Admin Requests", admin: true },
+        { label: "Projects", desc: "Track delivery & progress", icon: Home, page: "Projects" },
+        { label: "Email Campaigns", desc: "Send client marketing", icon: Megaphone, page: "Email Campaigns", admin: true },
+        { label: "Admin Services", desc: "Manage service catalog", icon: Wrench, page: "Admin Services", admin: true },
+        { label: "Invoices", desc: "Billing & payments", icon: ReceiptText, page: "Invoices" },
+      ].filter((a) => !a.admin || isAdmin)
+    : [
+        { label: "Request Service", desc: "Start a new project", icon: ShoppingBag, page: "Request Service" },
+        { label: "My Projects", desc: "Track progress & files", icon: Home, page: "Projects" },
+        { label: "Upload Files", desc: "Share artwork & docs", icon: FileUp, page: "Files & Documents" },
+        { label: "Messages", desc: "Chat with the JPS team", icon: MessageSquare, page: "Messages" },
+        { label: "Invoices", desc: "View & pay invoices", icon: ReceiptText, page: "Invoices" },
+        { label: "Appointments", desc: "Schedule a consultation", icon: CalendarDays, page: "Appointments" },
+      ];
 
   return (
     <div>
       <PageHeader
         title={`Welcome${user?.fullName ? `, ${user.fullName.split(" ")[0]}` : ""}!`}
-        description="Manage your business marketing projects, service requests, invoices, from one location."
+        description={
+          isStaff
+            ? "Manage clients, service requests, projects, invoices, and marketing from one place."
+            : "Manage your projects, service requests, invoices, and appointments from one location."
+        }
         actions={
-          <button className="green-btn" onClick={() => {}}>
+          <button className="green-btn" onClick={() => go("Appointments")}>
             Schedule Appointment
           </button>
         }
       />
 
+      {/* ── Stats (role-aware) ── */}
       <section className="stats-grid">
-        <StatsCard
-          title="Active Projects"
-          value={loadingStats ? "..." : stats.projects}
-          description="Projects currently in the portal"
-        />
-        <StatsCard
-          title="Service Requests"
-          value={loadingStats ? "..." : stats.requests}
-          description="Submitted requests"
-        />
-        <StatsCard
-          title="Invoices"
-          value={loadingStats ? "..." : stats.invoices}
-          description="Created invoices"
-        />
-        <StatsCard
-          title="Revenue"
-          value={loadingStats ? "..." : `$${Number(stats.revenue).toFixed(2)}`}
-          description="Total invoice value"
-        />
-        <StatsCard
-          title="Unread Notifications"
-          value={loadingStats ? "..." : stats.notifications}
-          description="Updates needing attention"
-        />
+        {isStaff ? (
+          <>
+            {isAdmin && (
+              <StatsCard
+                title="Total Users"
+                value={v(userCount ?? 0)}
+                description="Registered portal accounts"
+                icon={<Users size={18} color="#fff" />}
+                color="#0749B3"
+              />
+            )}
+            <StatsCard
+              title="Active Projects"
+              value={v(stats.projects)}
+              description="All projects in the portal"
+              icon={<Home size={18} color="#fff" />}
+              color="#22A9E0"
+            />
+            <StatsCard
+              title="Service Requests"
+              value={v(stats.requests)}
+              description={`${pendingRequests.length} pending review`}
+              icon={<ClipboardList size={18} color="#fff" />}
+              color="#a16207"
+            />
+            <StatsCard
+              title="Total Revenue"
+              value={v(`$${Number(stats.revenue).toFixed(2)}`)}
+              description="Across all invoices"
+              icon={<DollarSign size={18} color="#fff" />}
+              color="#0E9F6E"
+            />
+            <StatsCard
+              title="Invoices"
+              value={v(stats.invoices)}
+              description="Generated invoices"
+              icon={<ReceiptText size={18} color="#fff" />}
+              color="#7e22ce"
+            />
+          </>
+        ) : (
+          <>
+            <StatsCard
+              title="My Projects"
+              value={v(stats.projects)}
+              description="Projects assigned to you"
+              icon={<Home size={18} color="#fff" />}
+              color="#22A9E0"
+            />
+            <StatsCard
+              title="My Requests"
+              value={v(stats.requests)}
+              description="Service requests submitted"
+              icon={<ShoppingBag size={18} color="#fff" />}
+              color="#a16207"
+            />
+            <StatsCard
+              title="My Invoices"
+              value={v(stats.invoices)}
+              description="Invoices on your account"
+              icon={<ReceiptText size={18} color="#fff" />}
+              color="#7e22ce"
+            />
+            <StatsCard
+              title="Total Billed"
+              value={v(`$${Number(stats.revenue).toFixed(2)}`)}
+              description="Value of your invoices"
+              icon={<DollarSign size={18} color="#fff" />}
+              color="#0E9F6E"
+            />
+            <StatsCard
+              title="Notifications"
+              value={v(stats.notifications)}
+              description="Unread updates"
+              icon={<Bell size={18} color="#fff" />}
+              color="#0749B3"
+            />
+          </>
+        )}
       </section>
 
+      {/* ── Quick actions ── */}
       <section className="panel">
-        <h2>Your Business Growth Starts Now</h2>
-        <p>
-          Your digital business partner for website development, digital marketing, branding & signs, and IT solutions.
-        </p>
-        <div className="card-actions">
-          <button>Request Service</button>
-          <button className="outline">Upload Files</button>
-          <button className="green-btn">Schedule Appointment</button>
+        <h2>Quick Actions</h2>
+        <p>{isStaff ? "Jump straight into management tasks." : "Get things done in a couple of clicks."}</p>
+        <div className="addon-grid" style={{ marginTop: "16px" }}>
+          {quickActions.map(({ label, desc, icon: Icon, page }) => (
+            <button
+              key={label}
+              className="addon-card"
+              style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--line)" }}
+              onClick={() => go(page)}
+            >
+              <div
+                className="stat-card-icon"
+                style={{ background: "var(--deep)", marginBottom: "10px" }}
+              >
+                <Icon size={18} color="#fff" />
+              </div>
+              <h3>{label}</h3>
+              <p>{desc}</p>
+            </button>
+          ))}
         </div>
       </section>
 
+      {/* ── Admin: pending requests needing action ── */}
+      {isStaff && (
+        <section className="panel">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2>Pending Service Requests</h2>
+            <button className="view-btn" onClick={() => go("Admin Requests")}>View All</button>
+          </div>
+          {loading ? (
+            <p style={{ color: "#64748b" }}>Loading...</p>
+          ) : pendingRequests.length === 0 ? (
+            <p style={{ color: "#64748b" }}>No requests awaiting review. 🎉</p>
+          ) : (
+            pendingRequests.slice(0, 5).map((r) => (
+              <div key={r.id} className="row">
+                <div>
+                  <strong>#{r.id} — {r.projectTitle}</strong><br />
+                  <small style={{ color: "#64748b" }}>{r.serviceGroup} • {r.contactName} • {r.email}</small>
+                </div>
+                <button className="green-btn" onClick={() => go("Admin Requests")}>Review</button>
+              </div>
+            ))
+          )}
+        </section>
+      )}
+
+      {/* ── Recent projects (both roles) ── */}
       <section className="panel">
-        <h2>Active Projects</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2>{isStaff ? "Recent Projects" : "Your Active Projects"}</h2>
+          <button className="view-btn" onClick={() => go("Projects")}>View All</button>
+        </div>
         <p>Track active projects, review progress updates, and monitor deliverables.</p>
 
-        {recentProjects.length === 0 ? (
-          <p style={{ color: "#64748b" }}>No active projects yet.</p>
+        {loading ? (
+          <p style={{ color: "#64748b" }}>Loading projects...</p>
+        ) : recentProjects.length === 0 ? (
+          <p style={{ color: "#64748b" }}>No projects yet.</p>
         ) : (
           <div className="projects-grid" style={{ marginTop: "16px" }}>
             {recentProjects.map((project) => {
@@ -177,7 +323,10 @@ export default function Dashboard({ user }) {
                     </div>
                   </div>
                   <h3 className="project-card-title">{project.title}</h3>
-                  {project.description && (
+                  {isStaff && project.clientName && (
+                    <p className="project-card-desc">Client: {project.clientName}</p>
+                  )}
+                  {!isStaff && project.description && (
                     <p className="project-card-desc">{project.description}</p>
                   )}
                   <div className="project-progress-wrap">
@@ -193,11 +342,66 @@ export default function Dashboard({ user }) {
         )}
       </section>
 
+      {/* ── Recent invoices (both roles) ── */}
+      <section className="panel">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2>Recent Invoices</h2>
+          <button className="view-btn" onClick={() => go("Invoices")}>View All</button>
+        </div>
+        {loading ? (
+          <p style={{ color: "#64748b" }}>Loading...</p>
+        ) : recentInvoices.length === 0 ? (
+          <p style={{ color: "#64748b" }}>No invoices yet.</p>
+        ) : (
+          recentInvoices.map((inv) => (
+            <div key={inv.id} className="row">
+              <div>
+                <strong>{inv.invoiceNumber}</strong><br />
+                <small style={{ color: "#64748b" }}>
+                  {isStaff ? inv.clientName : inv.serviceDescription}
+                </small>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <strong>${Number(inv.totalAmount).toFixed(2)}</strong><br />
+                <small style={{ color: "#64748b" }}>{inv.status}</small>
+              </div>
+            </div>
+          ))
+        )}
+      </section>
+
+      {/* ── Client: recent requests ── */}
+      {!isStaff && (
+        <section className="panel">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h2>Your Recent Requests</h2>
+            <button className="view-btn" onClick={() => go("Request Service")}>New Request</button>
+          </div>
+          {loading ? (
+            <p style={{ color: "#64748b" }}>Loading...</p>
+          ) : recentRequests.length === 0 ? (
+            <p style={{ color: "#64748b" }}>You haven't submitted any service requests yet.</p>
+          ) : (
+            recentRequests.map((r) => (
+              <div key={r.id} className="row">
+                <div>
+                  <strong>{r.projectTitle}</strong><br />
+                  <small style={{ color: "#64748b" }}>{r.serviceGroup}</small>
+                </div>
+                <span style={{ color: REQUEST_COLORS[r.status] || "#64748b", fontWeight: 700, fontSize: "13px" }}>
+                  {r.status}
+                </span>
+              </div>
+            ))
+          )}
+        </section>
+      )}
+
+      {/* ── Service overview (everyone) ── */}
       {serviceGroups.length > 0 && (
         <section className="panel">
           <h2>Service Overview</h2>
-          <p>Explore our core services offered to help your business growth.</p>
-
+          <p>Explore our core services offered to help your business grow.</p>
           <div className="service-grid">
             {serviceGroups.map((group) => (
               <ServiceCard
@@ -211,20 +415,18 @@ export default function Dashboard({ user }) {
         </section>
       )}
 
-      {addOnServices.length > 0 && (
+      {/* ── Add-on services (clients request directly) ── */}
+      {!isStaff && addOnServices.length > 0 && (
         <section className="panel">
           <h2>Add-On Services</h2>
           <p>Quickly request our most popular services.</p>
-
           <div className="addon-grid">
             {addOnServices.map((service) => (
               <div key={service.id} className="addon-card">
                 <small>{service.groupName}</small>
                 <h3>{service.title}</h3>
                 <p>{service.description}</p>
-                {service.startingPrice && (
-                  <strong>Starting at ${service.startingPrice}</strong>
-                )}
+                {service.startingPrice && <strong>Starting at ${service.startingPrice}</strong>}
                 <button className="view-btn" onClick={() => addServiceRequest(service)}>
                   Add Service
                 </button>

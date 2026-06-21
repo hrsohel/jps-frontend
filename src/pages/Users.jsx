@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from "react";
 import PageHeader from "../components/PageHeader";
 import Pagination, { usePagination } from "../components/Pagination";
-import { apiGet, apiPatch } from "../lib/api";
+import { apiGet, apiPatch, apiPost } from "../lib/api";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
+const EMPTY_NEW_USER = {
+  fullName: "", email: "", password: "", phone: "",
+  businessName: "", role: "CLIENT", segment: "General", status: "ACTIVE",
+};
 
 export default function UsersPage({ setPage, setSelectedUser }) {
   const [users, setUsers] = useState([]);
@@ -15,6 +20,37 @@ export default function UsersPage({ setPage, setSelectedUser }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newUser, setNewUser] = useState(EMPTY_NEW_USER);
+  const [addError, setAddError] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  function setNew(key, val) { setNewUser((u) => ({ ...u, [key]: val })); }
+
+  async function createUser() {
+    setAddError("");
+    if (!newUser.fullName.trim() || !newUser.email.trim() || !newUser.password) {
+      setAddError("Full name, email, and password are required.");
+      return;
+    }
+    if (newUser.password.length < 8) {
+      setAddError("Password must be at least 8 characters.");
+      return;
+    }
+    try {
+      setAdding(true);
+      await apiPost("/users", newUser);
+      setNewUser(EMPTY_NEW_USER);
+      setShowAddForm(false);
+      await loadUsers();
+      alert("User created successfully.");
+    } catch (err) {
+      setAddError(err.message || "Unable to create user.");
+    } finally {
+      setAdding(false);
+    }
+  }
 
   useEffect(() => {
     loadUsers();
@@ -86,7 +122,78 @@ export default function UsersPage({ setPage, setSelectedUser }) {
 
   return (
     <div>
-      <PageHeader title="User Management" description="Manage customer accounts, roles, segments, status, and password resets." />
+      <PageHeader
+        title="User Management"
+        description="Manage customer accounts, roles, segments, status, and password resets."
+        actions={
+          <button className="green-btn" onClick={() => { setShowAddForm((v) => !v); setAddError(""); }}>
+            {showAddForm ? "Close" : "+ Add User"}
+          </button>
+        }
+      />
+
+      {showAddForm && (
+        <section className="panel" style={{ marginBottom: "20px", border: "2px solid #0E9F6E" }}>
+          <h3 style={{ marginTop: 0 }}>Create New User</h3>
+          {addError && <p style={{ color: "#ef4444" }}>{addError}</p>}
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Full Name *</label>
+              <input value={newUser.fullName} onChange={(e) => setNew("fullName", e.target.value)} placeholder="Jane Doe" />
+            </div>
+            <div className="form-group">
+              <label>Email *</label>
+              <input type="email" value={newUser.email} onChange={(e) => setNew("email", e.target.value)} placeholder="jane@business.com" />
+            </div>
+            <div className="form-group">
+              <label>Temporary Password *</label>
+              <input value={newUser.password} onChange={(e) => setNew("password", e.target.value)} placeholder="At least 8 characters" />
+            </div>
+            <div className="form-group">
+              <label>Phone</label>
+              <input value={newUser.phone} onChange={(e) => setNew("phone", e.target.value)} placeholder="+1 (555) 000-0000" />
+            </div>
+            <div className="form-group">
+              <label>Business Name</label>
+              <input value={newUser.businessName} onChange={(e) => setNew("businessName", e.target.value)} placeholder="Optional" />
+            </div>
+            <div className="form-group">
+              <label>Role</label>
+              <select value={newUser.role} onChange={(e) => setNew("role", e.target.value)}>
+                <option value="CLIENT">CLIENT</option>
+                <option value="ADMIN">ADMIN</option>
+                <option value="STAFF">STAFF</option>
+                <option value="MARKETING">MARKETING</option>
+                <option value="SUBCONTRACTOR">SUBCONTRACTOR</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Segment</label>
+              <select value={newUser.segment} onChange={(e) => setNew("segment", e.target.value)}>
+                <option>General</option>
+                <option>Website Clients</option>
+                <option>Hosting Clients</option>
+                <option>Digital Marketing Clients</option>
+                <option>Print & Sign Clients</option>
+                <option>Construction Clients</option>
+                <option>VIP Clients</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Status</label>
+              <select value={newUser.status} onChange={(e) => setNew("status", e.target.value)}>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="DISABLED">DISABLED</option>
+                <option value="PENDING">PENDING</option>
+              </select>
+            </div>
+          </div>
+          <div className="table-actions" style={{ marginTop: "12px" }}>
+            <button className="green-btn" onClick={createUser} disabled={adding}>{adding ? "Creating..." : "Create User"}</button>
+            <button className="delete-btn" onClick={() => { setShowAddForm(false); setNewUser(EMPTY_NEW_USER); }}>Cancel</button>
+          </div>
+        </section>
+      )}
 
       <section className="panel">
         <div className="form-group">
