@@ -77,6 +77,26 @@ export async function apiPatch(path, data) {
   return res.json();
 }
 
+export async function apiPut(path, data) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error("Session expired. Please log in again.");
+  }
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || "API request failed");
+  }
+
+  return res.json();
+}
+
 export async function apiDelete(path) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "DELETE",

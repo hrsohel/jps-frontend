@@ -16,6 +16,7 @@ import {
   Wrench,
   ClipboardList,
   History,
+  CreditCard,
 } from "lucide-react";
 
 import DashboardPage from "./pages/Dashboard";
@@ -41,6 +42,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import MessagesPage from "./pages/Messages";
 import MessageLogPage from "./pages/MessageLog";
+import AdminPaymentsPage from "./pages/AdminPayments";
 import { apiGet, apiPatch } from "./lib/api";
 
 const ADMIN_ROLES = ["ADMIN"];
@@ -84,6 +86,7 @@ function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessage
     ["Email Campaigns", Megaphone],
     ["Admin Services", Wrench],
     ["Admin Requests", ClipboardList],
+    ["Payments", CreditCard],
     ["Settings", Settings],
   ];
 
@@ -92,9 +95,9 @@ function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessage
   return (
     <aside className="sidebar">
       <img
-        src="/assets/jps-support-services-primary-logo.png"
+        src="/assets/JPS%20Core-2.png"
         className="logo"
-        alt="JPS Support Services"
+        alt="JPS Core"
       />
 
       <nav>
@@ -259,7 +262,7 @@ export default function App() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   // Admin-only pages
-  const adminOnlyPages = ["Users", "User Details", "Email Campaigns", "Admin Services", "Admin Requests"];
+  const adminOnlyPages = ["Users", "User Details", "Email Campaigns", "Admin Services", "Admin Requests", "Payments"];
 
   function renderPage() {
     // Auth pages (no login required)
@@ -324,6 +327,7 @@ export default function App() {
     if (page === "Email Campaigns") return <CampaignsPage />;
     if (page === "Admin Services") return <AdminServicesPage />;
     if (page === "Admin Requests") return <AdminRequests />;
+    if (page === "Payments") return <AdminPaymentsPage />;
     if (page === "Users") {
       return (
         <UsersPage
@@ -445,6 +449,14 @@ export default function App() {
         <div className="page-content">
           {renderPage()}
         </div>
+
+        <footer className="app-footer">
+          <span>© {new Date().getFullYear()} JPSCore Inc. All rights reserved.</span>
+          <div className="app-footer-links">
+            <button className="app-footer-link">Terms of Service</button>
+            <button className="app-footer-link">Privacy Policy</button>
+          </div>
+        </footer>
       </section>
     </main>
   );

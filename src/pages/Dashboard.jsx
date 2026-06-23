@@ -6,11 +6,6 @@ import {
   ReceiptText,
   DollarSign,
   Bell,
-  FileUp,
-  CalendarDays,
-  MessageSquare,
-  Megaphone,
-  Wrench,
   ClipboardList,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
@@ -125,25 +120,6 @@ export default function Dashboard({ user, setPage }) {
     (group.services || []).map((service) => ({ ...service, groupName: group.name }))
   );
 
-  // Quick actions differ by role
-  const quickActions = isStaff
-    ? [
-        { label: "Manage Users", desc: "Roles, segments & access", icon: Users, page: "Users", admin: true },
-        { label: "Review Requests", desc: "Approve & create projects", icon: ClipboardList, page: "Admin Requests", admin: true },
-        { label: "Projects", desc: "Track delivery & progress", icon: Home, page: "Projects" },
-        { label: "Email Campaigns", desc: "Send client marketing", icon: Megaphone, page: "Email Campaigns", admin: true },
-        { label: "Admin Services", desc: "Manage service catalog", icon: Wrench, page: "Admin Services", admin: true },
-        { label: "Invoices", desc: "Billing & payments", icon: ReceiptText, page: "Invoices" },
-      ].filter((a) => !a.admin || isAdmin)
-    : [
-        { label: "Request Service", desc: "Start a new project", icon: ShoppingBag, page: "Request Service" },
-        { label: "My Projects", desc: "Track progress & files", icon: Home, page: "Projects" },
-        { label: "Upload Files", desc: "Share artwork & docs", icon: FileUp, page: "Files & Documents" },
-        { label: "Messages", desc: "Chat with the JPS team", icon: MessageSquare, page: "Messages" },
-        { label: "Invoices", desc: "View & pay invoices", icon: ReceiptText, page: "Invoices" },
-        { label: "Appointments", desc: "Schedule a consultation", icon: CalendarDays, page: "Appointments" },
-      ];
-
   return (
     <div>
       <PageHeader
@@ -151,7 +127,7 @@ export default function Dashboard({ user, setPage }) {
         description={
           isStaff
             ? "Manage clients, service requests, projects, invoices, and marketing from one place."
-            : "Manage your projects, service requests, invoices, and appointments from one location."
+            : "Build, market, and manage your business identity with professional Digital Marketing, Print & Branding, Signage, and IT Solutions."
         }
         actions={
           <button className="green-btn" onClick={() => go("Appointments")}>
@@ -159,6 +135,28 @@ export default function Dashboard({ user, setPage }) {
           </button>
         }
       />
+
+      {/* ── Service Introduction Banner ── */}
+      <div className="service-intro-banner">
+        <div className="service-intro-left">
+          <img src="/assets/JPS%20Core-2.png" alt="JPSCore" className="service-intro-logo" />
+          <h2>Everything Your Business Needs to Grow</h2>
+          <p>Professional solutions for websites, marketing, branding, and IT — all in one place.</p>
+          <div className="service-intro-btns">
+            <button className="green-btn" onClick={() => go("Request Service")}>Request Service</button>
+            <button className="view-btn" onClick={() => go("Services")}>Explore Services</button>
+          </div>
+        </div>
+        <div className="service-intro-right">
+          {serviceGroups.slice(0, 4).map((g) => (
+            <div key={g.id} className="service-intro-chip">
+              <span className="service-intro-dot" />
+              {g.name}
+            </div>
+          ))}
+        </div>
+        <div className="service-intro-blob" />
+      </div>
 
       {/* ── Stats (role-aware) ── */}
       <section className="stats-grid">
@@ -169,37 +167,42 @@ export default function Dashboard({ user, setPage }) {
                 title="Total Users"
                 value={v(userCount ?? 0)}
                 description="Registered portal accounts"
-                icon={<Users size={18} color="#fff" />}
+                icon={<Users size={20} color="#fff" />}
                 color="#0749B3"
+                onClick={() => go("Users")}
               />
             )}
             <StatsCard
               title="Active Projects"
               value={v(stats.projects)}
               description="All projects in the portal"
-              icon={<Home size={18} color="#fff" />}
+              icon={<Home size={20} color="#fff" />}
               color="#22A9E0"
+              onClick={() => go("Projects")}
             />
             <StatsCard
               title="Service Requests"
               value={v(stats.requests)}
               description={`${pendingRequests.length} pending review`}
-              icon={<ClipboardList size={18} color="#fff" />}
+              icon={<ClipboardList size={20} color="#fff" />}
               color="#a16207"
+              onClick={() => go("Admin Requests")}
             />
             <StatsCard
               title="Total Revenue"
               value={v(`$${Number(stats.revenue).toFixed(2)}`)}
               description="Across all invoices"
-              icon={<DollarSign size={18} color="#fff" />}
+              icon={<DollarSign size={20} color="#fff" />}
               color="#0E9F6E"
+              onClick={() => go("Invoices")}
             />
             <StatsCard
               title="Invoices"
               value={v(stats.invoices)}
               description="Generated invoices"
-              icon={<ReceiptText size={18} color="#fff" />}
+              icon={<ReceiptText size={20} color="#fff" />}
               color="#7e22ce"
+              onClick={() => go("Invoices")}
             />
           </>
         ) : (
@@ -207,65 +210,45 @@ export default function Dashboard({ user, setPage }) {
             <StatsCard
               title="My Projects"
               value={v(stats.projects)}
-              description="Projects assigned to you"
-              icon={<Home size={18} color="#fff" />}
+              description="Track your active projects"
+              icon={<Home size={20} color="#fff" />}
               color="#22A9E0"
+              onClick={() => go("Projects")}
             />
             <StatsCard
               title="My Requests"
               value={v(stats.requests)}
               description="Service requests submitted"
-              icon={<ShoppingBag size={18} color="#fff" />}
+              icon={<ShoppingBag size={20} color="#fff" />}
               color="#a16207"
+              onClick={() => go("Request Service")}
             />
             <StatsCard
               title="My Invoices"
               value={v(stats.invoices)}
-              description="Invoices on your account"
-              icon={<ReceiptText size={18} color="#fff" />}
+              description="View & pay invoices"
+              icon={<ReceiptText size={20} color="#fff" />}
               color="#7e22ce"
+              onClick={() => go("Invoices")}
             />
             <StatsCard
               title="Total Billed"
               value={v(`$${Number(stats.revenue).toFixed(2)}`)}
               description="Value of your invoices"
-              icon={<DollarSign size={18} color="#fff" />}
+              icon={<DollarSign size={20} color="#fff" />}
               color="#0E9F6E"
+              onClick={() => go("Invoices")}
             />
             <StatsCard
               title="Notifications"
               value={v(stats.notifications)}
               description="Unread updates"
-              icon={<Bell size={18} color="#fff" />}
+              icon={<Bell size={20} color="#fff" />}
               color="#0749B3"
+              onClick={() => go("Settings")}
             />
           </>
         )}
-      </section>
-
-      {/* ── Quick actions ── */}
-      <section className="panel">
-        <h2>Quick Actions</h2>
-        <p>{isStaff ? "Jump straight into management tasks." : "Get things done in a couple of clicks."}</p>
-        <div className="addon-grid" style={{ marginTop: "16px" }}>
-          {quickActions.map(({ label, desc, icon: Icon, page }) => (
-            <button
-              key={label}
-              className="addon-card"
-              style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--line)" }}
-              onClick={() => go(page)}
-            >
-              <div
-                className="stat-card-icon"
-                style={{ background: "var(--deep)", marginBottom: "10px" }}
-              >
-                <Icon size={18} color="#fff" />
-              </div>
-              <h3>{label}</h3>
-              <p>{desc}</p>
-            </button>
-          ))}
-        </div>
       </section>
 
       {/* ── Admin: pending requests needing action ── */}

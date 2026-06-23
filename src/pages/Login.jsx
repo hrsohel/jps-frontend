@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Eye, EyeOff, CheckCircle2 } from "lucide-react";
 
 const features = [
-  "Track your projects in real time",
-  "View invoices & make payments",
-  "Communicate with your team",
-  "Manage appointments & files",
+  "Build Websites & Apps",
+  "Print & Brand Your Business",
+  "Market Your Services Online",
+  "Get Reliable IT Solutions",
+  "Connect with Experts 24/7",
 ];
 
 export default function Login({ setPage, setUser }) {
@@ -55,8 +56,8 @@ export default function Login({ setPage, setUser }) {
       <div className="auth-brand">
         <div className="auth-brand-inner">
           <img
-            src="/assets/jps-support-services-primary-logo.png"
-            alt="JPS Support Services"
+            src="/assets/JPS%20Core-2.png"
+            alt="JPS Core"
             className="auth-logo"
           />
           <h1 className="auth-brand-headline">
@@ -85,7 +86,7 @@ export default function Login({ setPage, setUser }) {
         <div className="auth-form-wrap">
           <div className="auth-form-header">
             <h2>Welcome Back</h2>
-            <p>Sign in to access your client portal</p>
+            <p>Sign in and start growing your business</p>
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">

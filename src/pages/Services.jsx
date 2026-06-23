@@ -1,6 +1,34 @@
 import React, { useEffect, useState } from "react";
+import { ArrowRight, Phone, CheckCircle2 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import { apiGet } from "../lib/api";
+
+const STATIC_GROUPS = [
+  {
+    key: "Website Services",
+    description: "Professional website design, app development, hosting and maintenance.",
+    image: "/assets/premium-web-design-showcase-01.png",
+    addons: ["E-Commerce Store", "Business Website", "Mobile App Development", "Website Maintenance"],
+  },
+  {
+    key: "Digital Marketing",
+    description: "SEO, advertising, social media management and lead management.",
+    image: "/assets/digital-marketing.jpg",
+    addons: ["SEO Package", "Social Media Management", "Google & Meta Ads", "Email Marketing"],
+  },
+  {
+    key: "Branding & Signs",
+    description: "Store signs, apparel branding, vehicle graphics, yard signs and promotional products.",
+    image: "/assets/branding-signs.jpg",
+    addons: ["Logo & Brand Identity", "Vehicle Graphics", "Yard Signs & Banners", "Apparel Branding"],
+  },
+  {
+    key: "IT & Business Solutions",
+    description: "Technology support, automation, CRM and business systems.",
+    image: "/assets/ecommerce-shopping-experience-male.png",
+    addons: ["IT Support & Helpdesk", "CRM Setup", "Business Automation", "Network Solutions"],
+  },
+];
 
 export default function Services({ setPage }) {
   const [groups, setGroups] = useState([]);
@@ -12,43 +40,46 @@ export default function Services({ setPage }) {
 
   async function loadServices() {
     try {
-      const data = await apiGet("/service-catalog/groups");
-      // Include ALL services (not just featured) for the services page
-      const groupsWithServices = await apiGet("/service-catalog/services");
+      const [groupData, serviceData] = await Promise.all([
+        apiGet("/service-catalog/groups").catch(() => []),
+        apiGet("/service-catalog/services").catch(() => []),
+      ]);
 
-      // Map services to their groups
       const groupMap = {};
-      if (Array.isArray(data)) {
-        data.forEach((g) => { groupMap[g.id] = { ...g, allServices: [] }; });
+      if (Array.isArray(groupData)) {
+        groupData.forEach((g) => { groupMap[g.id] = { ...g, allServices: [] }; });
       }
-      if (Array.isArray(groupsWithServices)) {
-        groupsWithServices.forEach((s) => {
-          if (groupMap[s.serviceGroupId]) {
-            groupMap[s.serviceGroupId].allServices.push(s);
-          }
+      if (Array.isArray(serviceData)) {
+        serviceData.forEach((s) => {
+          if (groupMap[s.serviceGroupId]) groupMap[s.serviceGroupId].allServices.push(s);
         });
       }
-
       setGroups(Object.values(groupMap));
-    } catch (error) {
-      console.error(error);
+    } catch {
+      setGroups([]);
     } finally {
       setLoading(false);
     }
   }
 
-  const staticImages = {
-    "Website Services": "/assets/services/website-services.jpg",
-    "Digital Marketing": "/assets/services/digital-marketing.jpg",
-    "Branding & Signs": "/assets/services/branding-signs.jpg",
-    "IT & Business Solutions": "/assets/services/IT-Solutions.jpg",
-  };
+  // Merge API data with static fallbacks
+  const displayGroups = STATIC_GROUPS.map((sg) => {
+    const apiGroup = groups.find((g) => g.name === sg.key);
+    const apiAddons = apiGroup?.allServices?.filter((s) => s.isActive !== false).slice(0, 4) || [];
+    return {
+      id: apiGroup?.id || sg.key,
+      name: sg.key,
+      description: apiGroup?.description || sg.description,
+      image: apiGroup?.imageUrl || sg.image,
+      addons: apiAddons.length >= 2 ? apiAddons.map((s) => s.title) : sg.addons,
+    };
+  });
 
   return (
     <div>
       <PageHeader
-        title="Services"
-        description="Explore our digital, marketing, branding, and IT solutions. Submit service requests and schedule consultations."
+        title="Our Services"
+        description="Professional solutions built for businesses that want to grow. Choose a service to get started."
         actions={
           <button className="green-btn" onClick={() => setPage && setPage("Request Service")}>
             Request Service
@@ -57,68 +88,58 @@ export default function Services({ setPage }) {
       />
 
       {loading ? (
-        <div className="panel"><p style={{ color: "#64748b" }}>Loading services...</p></div>
-      ) : groups.length === 0 ? (
-        <section className="panel">
-          <h2>Available Services</h2>
-          <p>Browse our service categories and submit a request to get started.</p>
-          <div className="service-grid">
-            {["Website Services", "Digital Marketing", "Branding & Signs", "IT & Business Solutions"].map((name) => (
-              <div key={name} className="service-card">
-                {staticImages[name] && <img src={staticImages[name]} alt={name} style={{ width: "100%", borderRadius: "8px", marginBottom: "12px" }} />}
-                <h3>{name}</h3>
-                <button className="view-btn" onClick={() => setPage && setPage("Request Service")}>Request Service</button>
-              </div>
-            ))}
-          </div>
-        </section>
+        <div className="panel"><p style={{ color: "var(--muted)" }}>Loading services...</p></div>
       ) : (
-        groups.map((group) => (
-          <section key={group.id} className="panel">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-              <div>
-                <h2>{group.name}</h2>
-                {group.description && <p style={{ color: "#64748b" }}>{group.description}</p>}
-              </div>
-              <button className="green-btn" onClick={() => setPage && setPage("Request Service")}>
-                Request Service
-              </button>
-            </div>
+        <div className="svc-page-grid">
+          {displayGroups.map((group) => (
+            <div key={group.id} className="svc-group-card">
+              {/* Card image */}
+              {group.image && (
+                <div className="svc-group-img-wrap">
+                  <img src={group.image} alt={group.name} className="svc-group-img" />
+                  <div className="svc-group-img-overlay" />
+                </div>
+              )}
 
-            {group.allServices && group.allServices.length > 0 ? (
-              <div className="addon-grid">
-                {group.allServices.map((service) => (
-                  <div key={service.id} className="addon-card">
-                    {service.featured && (
-                      <span style={{ background: "#f59e0b", color: "#fff", padding: "2px 8px", borderRadius: "10px", fontSize: "11px", marginBottom: "8px", display: "inline-block" }}>
-                        ⭐ Featured
-                      </span>
-                    )}
-                    <h3>{service.title}</h3>
-                    {service.description && <p>{service.description}</p>}
-                    {service.startingPrice > 0 && (
-                      <strong>Starting at ${service.startingPrice}</strong>
-                    )}
-                    <button className="view-btn" onClick={() => setPage && setPage("Request Service")}>
-                      Request
-                    </button>
+              {/* Card body */}
+              <div className="svc-group-body">
+                <h2 className="svc-group-title">{group.name}</h2>
+                <p className="svc-group-desc">{group.description}</p>
+
+                {/* Action buttons */}
+                <div className="svc-group-btns">
+                  <button
+                    className="svc-btn-primary"
+                    onClick={() => setPage && setPage("Request Service")}
+                  >
+                    <ArrowRight size={16} />
+                    Request Service
+                  </button>
+                  <button
+                    className="svc-btn-secondary"
+                    onClick={() => setPage && setPage("Appointments")}
+                  >
+                    <Phone size={15} />
+                    Connect Live
+                  </button>
+                </div>
+
+                {/* Featured addons — 2×2 grid */}
+                {group.addons.length > 0 && (
+                  <div className="svc-addons-grid">
+                    {group.addons.slice(0, 4).map((addon) => (
+                      <div key={addon} className="svc-addon-chip">
+                        <CheckCircle2 size={14} />
+                        {addon}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            ) : (
-              <p style={{ color: "#64748b" }}>No services listed yet for this category.</p>
-            )}
-          </section>
-        ))
+            </div>
+          ))}
+        </div>
       )}
-
-      <section className="panel">
-        <h2>How It Works</h2>
-        <p>Every service follows a simple process designed to keep your project organized.</p>
-        {["1. Request Service", "2. Upload Files & Requirements", "3. Consultation & Review", "4. Project Execution", "5. Delivery & Support"].map((step) => (
-          <div key={step} className="row"><span>{step}</span></div>
-        ))}
-      </section>
     </div>
   );
 }
