@@ -193,16 +193,30 @@ export default function CampaignsPage() {
     setShowCampaignForm(true);
   }
 
+  const PORTAL_URL = import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace("/api", "")
+    : window.location.origin;
+  const LOGO_URL = `${PORTAL_URL}/assets/JPS%20Core-2.png`;
+
   function buildHtml() {
     const { emailTitle, emailBody, buttonText, buttonLink, bannerImage } = campaignForm;
-    return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px">
-      <img src="https://app.jpssupport.com/assets/jps-support-services-primary-logo.png" alt="JPS" style="height:50px;margin-bottom:20px" />
-      ${bannerImage ? `<img src="${bannerImage}" style="width:100%;border-radius:12px;margin-bottom:20px" />` : ""}
-      <h1 style="color:#0749B3">${emailTitle}</h1>
-      <p style="white-space:pre-line">${emailBody}</p>
-      ${buttonText ? `<p><a href="${buttonLink || "#"}" style="display:inline-block;background:#22A9E0;color:#fff;padding:12px 20px;text-decoration:none;border-radius:8px;font-weight:bold">${buttonText}</a></p>` : ""}
-      <p style="color:#64748b;margin-top:24px">JPS Support Services — Your Digital Business Partner</p>
-    </div>`;
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif">
+      <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+        <div style="background:linear-gradient(135deg,#06174a 0%,#0749B3 100%);padding:22px 32px">
+          <img src="${LOGO_URL}" alt="JPS Core" style="height:46px;display:block;filter:brightness(0) invert(1)" />
+        </div>
+        ${bannerImage ? `<img src="${bannerImage}" alt="" style="width:100%;display:block" />` : ""}
+        <div style="padding:32px 32px 24px">
+          ${emailTitle ? `<h1 style="color:#0749B3;margin:0 0 16px;font-size:22px">${emailTitle}</h1>` : ""}
+          <div style="color:#475569;line-height:1.7;white-space:pre-line">${emailBody}</div>
+          ${buttonText ? `<p style="margin-top:24px"><a href="${buttonLink || "#"}" style="display:inline-block;background:#0749B3;color:#fff;padding:13px 26px;text-decoration:none;border-radius:8px;font-weight:700">${buttonText}</a></p>` : ""}
+        </div>
+        <div style="background:#f8fafc;padding:18px 32px;border-top:1px solid #e2e8f0">
+          <p style="color:#0749B3;font-weight:700;margin:0 0 4px">JPS Core</p>
+          <p style="color:#94a3b8;font-size:12px;margin:0">Solutions for Growing Businesses &bull; Building. Marketing. Growing.</p>
+        </div>
+      </div>
+    </body></html>`;
   }
 
   async function saveDraft() {
@@ -361,7 +375,7 @@ export default function CampaignsPage() {
                 </label>
                 <label className="form-label">
                   Button Link
-                  <input className="form-select" value={templateForm.buttonLink} onChange={(e) => setTemplateForm({ ...templateForm, buttonLink: e.target.value })} placeholder="https://jpssupport.com" />
+                  <input className="form-select" value={templateForm.buttonLink} onChange={(e) => setTemplateForm({ ...templateForm, buttonLink: e.target.value })} placeholder="https://jpscoreinc.com" />
                 </label>
               </div>
               <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
@@ -554,7 +568,7 @@ export default function CampaignsPage() {
               <section className="panel" style={{ marginTop: "20px" }}>
                 <h4 style={{ margin: "0 0 12px" }}>Email Preview</h4>
                 <div className="email-preview">
-                  <img src="/assets/jps-support-services-primary-logo.png" alt="JPS" style={{ maxWidth: "180px", marginBottom: "16px" }} />
+                  <img src="/assets/JPS Core-2.png" alt="JPS Core" style={{ maxWidth: "180px", marginBottom: "16px" }} />
                   {campaignForm.bannerImage && <img src={campaignForm.bannerImage} alt="" style={{ width: "100%", borderRadius: "10px", marginBottom: "16px" }} />}
                   <h2 style={{ color: "#0749B3" }}>{campaignForm.emailTitle || "Email Heading"}</h2>
                   <p style={{ whiteSpace: "pre-wrap", color: "#334155" }}>{campaignForm.emailBody || "Your message will appear here."}</p>

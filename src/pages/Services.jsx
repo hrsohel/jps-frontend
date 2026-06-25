@@ -87,6 +87,33 @@ export default function Services({ setPage }) {
         }
       />
 
+      {/* ── How It Works ── */}
+      <div className="hiw-section">
+        <h2 className="hiw-title">How It Works</h2>
+        <p className="hiw-subtitle">From sign-up to delivery — here's what to expect when you work with JPS Core.</p>
+        <div className="hiw-steps">
+          {[
+            { n: "01", title: "Register",               desc: "Create your free account." },
+            { n: "02", title: "Submit Request",          desc: "Tell us what you need." },
+            { n: "03", title: "Project Review",          desc: "We review and discuss your goals." },
+            { n: "04", title: "Approve Proposal",        desc: "Review and approve pricing." },
+            { n: "05", title: "Project Execution",       desc: "Our team gets to work." },
+            { n: "06", title: "Delivery & Support",      desc: "Receive your project and ongoing support." },
+          ].map(({ n, title, desc }, i, arr) => (
+            <React.Fragment key={n}>
+              <div className="hiw-step">
+                <div className="hiw-num">{n}</div>
+                <div className="hiw-step-body">
+                  <strong>{title}</strong>
+                  <span>{desc}</span>
+                </div>
+              </div>
+              {i < arr.length - 1 && <div className="hiw-connector" />}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
         <div className="panel"><p style={{ color: "var(--muted)" }}>Loading services...</p></div>
       ) : (

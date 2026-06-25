@@ -7,7 +7,7 @@ export default function AdminLogin({ setAdminLoggedIn }) {
   function handleLogin(e) {
     e.preventDefault();
 
-    if (email === "admin@jpssupport.com" && password === "admin123") {
+    if (email === "admin@jpscoreinc.com" && password === "admin123") {
       localStorage.setItem("adminLoggedIn", "true");
       setAdminLoggedIn(true);
       return;
@@ -20,7 +20,7 @@ export default function AdminLogin({ setAdminLoggedIn }) {
     <div className="login-page">
       <form className="login-card" onSubmit={handleLogin}>
         <h1>Admin Login</h1>
-        <p>Access the JPS Support admin dashboard.</p>
+        <p>Access the JPS Core admin dashboard.</p>
 
         <label>Email</label>
         <input

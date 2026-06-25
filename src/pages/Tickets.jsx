@@ -128,7 +128,7 @@ export default function Tickets({ user }) {
         <h2>Support Information</h2>
         <p>For urgent issues, you can also reach us directly:</p>
 
-        <div className="row"><span>Email</span><small>support@jpssupport.com</small></div>
+        <div className="row"><span>Email</span><small>support@jpscoreinc.com</small></div>
         <div className="row"><span>Phone</span><small>Contact via portal message or email</small></div>
         <div className="row"><span>Response Time</span><small>Within 1 business day</small></div>
       </section>

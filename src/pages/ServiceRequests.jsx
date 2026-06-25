@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { Send, ClipboardList, ChevronRight, Calendar, DollarSign, Building2, User, Mail, Phone, FileText, Layers } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Send, ClipboardList, ChevronRight, Calendar, DollarSign, Building2, User, Mail, Phone, FileText, Layers, Upload, Image, X } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Pagination, { usePagination } from "../components/Pagination";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet, apiPost, apiUpload } from "../lib/api";
 
 const STATUS_CONFIG = {
   NEW:      { label: "New",      bg: "#f1f5f9", color: "#475569", dot: "#94a3b8" },
@@ -41,12 +41,15 @@ export default function ServiceRequests({ user }) {
   const [loading, setLoading]       = useState(false);
   const [success, setSuccess]       = useState(false);
   const [error, setError]           = useState("");
+  const [imgUploading, setImgUploading] = useState(false);
+  const attachRef = useRef();
   const historyPagination = usePagination(requests, 8);
 
   const [form, setForm] = useState({
     serviceGroup: "", industryType: "", projectTitle: "",
     businessName: user?.businessName || "", contactName: user?.fullName || "",
     email: user?.email || "", phone: "", budgetRange: "", desiredDate: "", description: "",
+    attachmentUrl: "",
   });
 
   useEffect(() => {
@@ -65,6 +68,20 @@ export default function ServiceRequests({ user }) {
 
   function set(key, val) { setForm((f) => ({ ...f, [key]: val })); }
 
+  async function uploadAttachment(file) {
+    try {
+      setImgUploading(true);
+      const fd = new FormData();
+      fd.append("image", file);
+      const result = await apiUpload("/upload/image", fd);
+      set("attachmentUrl", result.url);
+    } catch (e) {
+      setError(e.message || "Image upload failed");
+    } finally {
+      setImgUploading(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -80,6 +97,7 @@ export default function ServiceRequests({ user }) {
         serviceGroup: "", industryType: "", projectTitle: "",
         businessName: user?.businessName || "", contactName: user?.fullName || "",
         email: user?.email || "", phone: "", budgetRange: "", desiredDate: "", description: "",
+        attachmentUrl: "",
       });
       loadRequests();
       setTimeout(() => setSuccess(false), 5000);
@@ -91,8 +109,8 @@ export default function ServiceRequests({ user }) {
   }
 
   const serviceOptions = serviceGroups.length > 0
-    ? serviceGroups.map((g) => g.name)
-    : ["Website Services", "Digital Marketing", "Branding & Signs", "IT & Business Solutions"];
+    ? [...serviceGroups.map((g) => g.name), "Custom Service"]
+    : ["Website Services", "Digital Marketing", "Branding & Signs", "IT & Business Solutions", "Custom Service"];
 
   return (
     <div>
@@ -230,6 +248,62 @@ export default function ServiceRequests({ user }) {
               <input className="form-select" type="date" value={form.desiredDate} onChange={(e) => set("desiredDate", e.target.value)} />
             </label>
           </div>
+        </div>
+
+        {/* ── Section 4: Reference Image ── */}
+        <div className="sr-section">
+          <div className="sr-section-header">
+            <div className="sr-section-icon"><Image size={18} /></div>
+            <div>
+              <h3>Reference Image <span style={{ fontWeight: 400, color: "var(--muted)", fontSize: 12 }}>(optional)</span></h3>
+              <p>Upload a logo, screenshot, design sample, or anything that helps us understand your vision.</p>
+            </div>
+          </div>
+
+          <div
+            onClick={() => !imgUploading && attachRef.current?.click()}
+            style={{
+              border: `2px dashed ${form.attachmentUrl ? "#0749B3" : "#cbd5e1"}`,
+              borderRadius: 10, padding: form.attachmentUrl ? "6px" : "28px 12px",
+              display: "flex", flexDirection: "column", alignItems: "center",
+              justifyContent: "center", cursor: imgUploading ? "not-allowed" : "pointer",
+              background: imgUploading ? "#f8fafc" : "#fff", gap: 8,
+              transition: "border-color .15s", minHeight: form.attachmentUrl ? "auto" : 100,
+            }}
+            onMouseEnter={(e) => { if (!imgUploading && !form.attachmentUrl) e.currentTarget.style.borderColor = "var(--deep)"; }}
+            onMouseLeave={(e) => { if (!form.attachmentUrl) e.currentTarget.style.borderColor = "#cbd5e1"; }}
+          >
+            {form.attachmentUrl ? (
+              <>
+                <img src={form.attachmentUrl} alt="attachment" style={{ width: "100%", maxHeight: 160, objectFit: "contain", borderRadius: 6 }} />
+                <span style={{ fontSize: 12, color: "#64748b", display: "flex", alignItems: "center", gap: 4 }}>
+                  <Upload size={12} /> Click to replace
+                </span>
+              </>
+            ) : (
+              <>
+                <Upload size={22} color="#94a3b8" />
+                <span style={{ fontSize: 13, color: imgUploading ? "#94a3b8" : "#64748b", fontWeight: 500 }}>
+                  {imgUploading ? "Uploading…" : "Click to upload reference image"}
+                </span>
+                <span style={{ fontSize: 11, color: "#94a3b8" }}>JPG, PNG, WEBP, PDF</span>
+              </>
+            )}
+            <input
+              ref={attachRef}
+              type="file"
+              accept="image/*,.pdf"
+              style={{ display: "none" }}
+              disabled={imgUploading}
+              onChange={(e) => { const f = e.target.files[0]; if (f) uploadAttachment(f); e.target.value = ""; }}
+            />
+          </div>
+          {form.attachmentUrl && (
+            <button type="button" onClick={() => set("attachmentUrl", "")}
+              style={{ marginTop: 6, fontSize: 11, color: "#94a3b8", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+              <X size={12} /> Remove image
+            </button>
+          )}
         </div>
 
         {/* ── Submit ── */}

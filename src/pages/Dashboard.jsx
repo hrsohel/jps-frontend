@@ -44,9 +44,11 @@ export default function Dashboard({ user, setPage }) {
   const [requests, setRequests] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [banner, setBanner] = useState(null);
 
   useEffect(() => {
     loadAll();
+    apiGet("/site-banner").then(setBanner).catch(() => {});
   }, []);
 
   async function loadAll() {
@@ -137,26 +139,41 @@ export default function Dashboard({ user, setPage }) {
       />
 
       {/* ── Service Introduction Banner ── */}
-      <div className="service-intro-banner">
-        <div className="service-intro-left">
-          <img src="/assets/JPS%20Core-2.png" alt="JPSCore" className="service-intro-logo" />
-          <h2>Everything Your Business Needs to Grow</h2>
-          <p>Professional solutions for websites, marketing, branding, and IT — all in one place.</p>
-          <div className="service-intro-btns">
-            <button className="green-btn" onClick={() => go("Request Service")}>Request Service</button>
-            <button className="view-btn" onClick={() => go("Services")}>Explore Services</button>
-          </div>
-        </div>
-        <div className="service-intro-right">
-          {serviceGroups.slice(0, 4).map((g) => (
-            <div key={g.id} className="service-intro-chip">
-              <span className="service-intro-dot" />
-              {g.name}
+      {(banner?.isActive !== false) && (
+        <div
+          className="service-intro-banner"
+          style={banner?.imageUrl ? {
+            background: `linear-gradient(135deg, rgba(6,23,74,0.85) 0%, rgba(7,73,179,0.72) 55%, rgba(34,169,224,0.60) 100%), url(${banner.imageUrl}) center/cover no-repeat`,
+          } : undefined}
+        >
+          <div className="service-intro-left">
+            <img src="/assets/JPS%20Core-2.png" alt="JPSCore" className="service-intro-logo" />
+            <h2>{banner?.title || "Everything Your Business Needs to Grow"}</h2>
+            <p>{banner?.subtitle || "Professional solutions for websites, marketing, branding, and IT — all in one place."}</p>
+            <div className="service-intro-btns">
+              {banner?.cta1Text && (
+                <button className="green-btn" onClick={() => go(banner.cta1Page || "Request Service")}>
+                  {banner.cta1Text}
+                </button>
+              )}
+              {banner?.cta2Text && (
+                <button className="view-btn" onClick={() => go(banner.cta2Page || "Services")}>
+                  {banner.cta2Text}
+                </button>
+              )}
             </div>
-          ))}
+          </div>
+          <div className="service-intro-right">
+            {serviceGroups.slice(0, 4).map((g) => (
+              <div key={g.id} className="service-intro-chip">
+                <span className="service-intro-dot" />
+                {g.name}
+              </div>
+            ))}
+          </div>
+          <div className="service-intro-blob" />
         </div>
-        <div className="service-intro-blob" />
-      </div>
+      )}
 
       {/* ── Stats (role-aware) ── */}
       <section className="stats-grid">

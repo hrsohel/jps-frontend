@@ -4,7 +4,10 @@ import {
   FileUp,
   Headphones,
   Home,
+  Image,
   LayoutDashboard,
+  Layers,
+  Menu,
   MessageSquare,
   ReceiptText,
   Search,
@@ -43,6 +46,7 @@ import ResetPassword from "./pages/ResetPassword";
 import MessagesPage from "./pages/Messages";
 import MessageLogPage from "./pages/MessageLog";
 import AdminPaymentsPage from "./pages/AdminPayments";
+import AdminBannerPage from "./pages/AdminBanner";
 import { apiGet, apiPatch } from "./lib/api";
 
 const ADMIN_ROLES = ["ADMIN"];
@@ -55,8 +59,10 @@ function isStaffRole(role) {
   return STAFF_ROLES.includes(role);
 }
 
-function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessages }) {
+function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessages, isOpen, onClose }) {
   if (!isLoggedIn) return null;
+
+  function nav(label) { setPage(label); onClose && onClose(); }
 
   const role = user?.role;
   const isAdmin = isAdminRole(role);
@@ -65,6 +71,7 @@ function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessage
   const clientItems = [
     ["Dashboard", LayoutDashboard],
     ["Request Service", ShoppingBag],
+    ["Services", Layers],
     ["Projects", Home],
     ["Invoices", ReceiptText],
     ["Files & Documents", FileUp],
@@ -86,6 +93,7 @@ function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessage
     ["Email Campaigns", Megaphone],
     ["Admin Services", Wrench],
     ["Admin Requests", ClipboardList],
+    ["Banner Editor", Image],
     ["Payments", CreditCard],
     ["Settings", Settings],
   ];
@@ -93,7 +101,7 @@ function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessage
   const items = isStaff ? adminItems : clientItems;
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${isOpen ? " open" : ""}`}>
       <img
         src="/assets/JPS%20Core-2.png"
         className="logo"
@@ -104,7 +112,7 @@ function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessage
         {items.map(([label, Icon]) => (
           <button
             key={label}
-            onClick={() => setPage(label)}
+            onClick={() => nav(label)}
             className={page === label ? "active" : ""}
           >
             <Icon size={18} />
@@ -135,7 +143,7 @@ function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessage
 
       <div className="sidebar-footer">
         <button
-          onClick={() => setPage("Support Tickets")}
+          onClick={() => nav("Support Tickets")}
           className={page === "Support Tickets" ? "active" : ""}
         >
           <Headphones size={18} />
@@ -147,7 +155,7 @@ function Sidebar({ page, setPage, isLoggedIn, user, serviceGroups, unreadMessage
         <Headphones />
         <h3>Need Help?</h3>
         <p>Schedule a call or open a support ticket.</p>
-        <button className="green-btn" onClick={() => setPage("Appointments")}>
+        <button className="green-btn" onClick={() => nav("Appointments")}>
           Schedule Appointment
         </button>
       </div>
@@ -166,11 +174,9 @@ function AccessDenied() {
 
 export default function App() {
   const [page, setPage] = useState(() => {
-    // Check for password reset token in URL
     const params = new URLSearchParams(window.location.search);
-    if (params.get("page") === "reset-password" && params.get("token")) {
-      return "Reset Password";
-    }
+    if (params.get("page") === "reset-password" && params.get("token")) return "Reset Password";
+    if (params.get("page") === "invoice-paid") return "Invoices";
     const token = localStorage.getItem("token");
     return token ? "Dashboard" : "Login";
   });
@@ -191,6 +197,7 @@ export default function App() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [serviceGroups, setServiceGroups] = useState([]);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isLoggedIn = Boolean(localStorage.getItem("token"));
   const role = user?.role;
@@ -250,6 +257,9 @@ export default function App() {
     if (page !== "Messages") loadUnreadMessages();
   }, [page]);
 
+  // Close sidebar on page navigation
+  useEffect(() => { setSidebarOpen(false); }, [page]);
+
   async function markNotificationRead(id) {
     try {
       await apiPatch(`/notifications/${id}/read`, {});
@@ -262,12 +272,12 @@ export default function App() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   // Admin-only pages
-  const adminOnlyPages = ["Users", "User Details", "Email Campaigns", "Admin Services", "Admin Requests", "Payments"];
+  const adminOnlyPages = ["Users", "User Details", "Email Campaigns", "Admin Services", "Admin Requests", "Payments", "Banner Editor"];
 
   function renderPage() {
     // Auth pages (no login required)
     if (page === "Login") return <LoginPage setPage={setPage} setUser={setUser} />;
-    if (page === "Create Account") return <RegisterPage setPage={setPage} />;
+    if (page === "Create Account") return <RegisterPage setPage={setPage} setUser={setUser} />;
     if (page === "Forgot Password") return <ForgotPassword setPage={setPage} />;
     if (page === "Reset Password") return <ResetPassword setPage={setPage} resetToken={resetToken} />;
 
@@ -328,6 +338,7 @@ export default function App() {
     if (page === "Admin Services") return <AdminServicesPage />;
     if (page === "Admin Requests") return <AdminRequests />;
     if (page === "Payments") return <AdminPaymentsPage />;
+    if (page === "Banner Editor") return <AdminBannerPage />;
     if (page === "Users") {
       return (
         <UsersPage
@@ -361,6 +372,7 @@ export default function App() {
 
   return (
     <main className="app">
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
       <Sidebar
         page={page}
         setPage={setPage}
@@ -368,10 +380,15 @@ export default function App() {
         user={user}
         serviceGroups={serviceGroups}
         unreadMessages={unreadMessages}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <section className="content">
         <header className="topbar">
+          <button className="menu-toggle" onClick={() => setSidebarOpen(o => !o)} aria-label="Toggle menu">
+            <Menu size={22} />
+          </button>
           <div className="search">
             <Search size={18} />
             <input placeholder="Search anything..." />

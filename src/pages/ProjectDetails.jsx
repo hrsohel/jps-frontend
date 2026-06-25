@@ -11,6 +11,11 @@ export default function ProjectDetails({ selectedProject, user }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [invoiceAmount, setInvoiceAmount] = useState("");
+  const [invoiceDesc, setInvoiceDesc] = useState("");
+  const [invoiceDue, setInvoiceDue] = useState("");
+  const [invoiceTax, setInvoiceTax] = useState("");
+  const [invoiceDiscount, setInvoiceDiscount] = useState("");
+  const [invoiceNotes, setInvoiceNotes] = useState("");
   const [activities, setActivities] = useState([]);
 
   const isStaff = user?.role === "ADMIN" || user?.role === "STAFF";
@@ -112,25 +117,23 @@ export default function ProjectDetails({ selectedProject, user }) {
   }
 
   async function generateInvoice() {
-    if (!activeProject?.id) {
-      alert("Project is missing");
-      return;
-    }
-    if (!invoiceAmount) {
-      alert("Enter invoice amount first");
-      return;
-    }
-
+    if (!activeProject?.id) { alert("Project is missing"); return; }
+    if (!invoiceAmount) { alert("Enter service amount first"); return; }
     try {
       await apiPost("/invoices", {
         projectId: activeProject.id,
         clientName: activeProject.clientName,
         clientEmail: activeProject.clientEmail,
-        serviceDescription: activeProject.title,
-        serviceAmount: invoiceAmount,
+        serviceDescription: invoiceDesc || activeProject.title,
+        serviceAmount: Number(invoiceAmount),
+        taxAmount: Number(invoiceTax || 0),
+        discountAmount: Number(invoiceDiscount || 0),
+        dueDate: invoiceDue || null,
+        notes: invoiceNotes || null,
       });
-      alert("Invoice created successfully");
-      setInvoiceAmount("");
+      alert("Invoice created and client notified.");
+      setInvoiceAmount(""); setInvoiceDesc(""); setInvoiceDue("");
+      setInvoiceTax(""); setInvoiceDiscount(""); setInvoiceNotes("");
     } catch (error) {
       alert(error.message || "Unable to create invoice");
     }
@@ -232,19 +235,38 @@ export default function ProjectDetails({ selectedProject, user }) {
 
       {isStaff && (
         <section className="panel">
-          <h2>Generate Invoice</h2>
-
-          <div className="form-group">
-            <label>Service Amount</label>
-            <input
-              value={invoiceAmount}
-              onChange={(e) => setInvoiceAmount(e.target.value)}
-              placeholder="300"
-            />
+          <h2>Issue Invoice</h2>
+          <div className="invoice-grid">
+            <label>
+              Service Description
+              <input value={invoiceDesc} onChange={(e) => setInvoiceDesc(e.target.value)} placeholder={activeProject?.title} />
+            </label>
+            <label>
+              Due Date
+              <input type="date" value={invoiceDue} onChange={(e) => setInvoiceDue(e.target.value)} />
+            </label>
+            <label>
+              Service Amount ($) *
+              <input type="number" min="0" step="0.01" value={invoiceAmount} onChange={(e) => setInvoiceAmount(e.target.value)} placeholder="0.00" />
+            </label>
+            <label>
+              Tax ($)
+              <input type="number" min="0" step="0.01" value={invoiceTax} onChange={(e) => setInvoiceTax(e.target.value)} placeholder="0.00" />
+            </label>
+            <label>
+              Discount ($)
+              <input type="number" min="0" step="0.01" value={invoiceDiscount} onChange={(e) => setInvoiceDiscount(e.target.value)} placeholder="0.00" />
+            </label>
+            <label style={{ gridColumn: "1/-1" }}>
+              Notes
+              <textarea rows="2" value={invoiceNotes} onChange={(e) => setInvoiceNotes(e.target.value)} style={{ width: "100%", marginTop: 4 }} />
+            </label>
           </div>
-
-          <button className="green-btn" onClick={generateInvoice}>
-            Generate Invoice
+          <div style={{ marginTop: 8 }}>
+            <strong>Total: ${(Number(invoiceAmount || 0) + Number(invoiceTax || 0) - Number(invoiceDiscount || 0)).toFixed(2)}</strong>
+          </div>
+          <button className="green-btn" style={{ marginTop: 12 }} onClick={generateInvoice}>
+            Issue Invoice &amp; Notify Client
           </button>
         </section>
       )}

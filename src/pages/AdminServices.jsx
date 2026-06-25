@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { Star, Pencil, Trash2, Check, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Star, Pencil, Trash2, Check, X, Upload } from "lucide-react";
 import PageHeader from "../components/PageHeader";
-import { apiGet, apiPost, apiDelete, apiPut } from "../lib/api";
+import Pagination, { usePagination } from "../components/Pagination";
+import { apiGet, apiPost, apiDelete, apiPut, apiUpload } from "../lib/api";
 
 const BLANK_GROUP = { name: "", description: "", imageUrl: "", featured: false, isActive: true, displayOrder: 0 };
 const BLANK_SERVICE = { title: "", description: "", startingPrice: "", imageUrl: "", featured: false, isActive: true, serviceGroupId: "" };
@@ -22,7 +23,88 @@ export default function AdminServicesPage() {
   const [editServiceData, setEditServiceData] = useState({});
   const [editSaving, setEditSaving] = useState(false);
 
+  const [imgUploading, setImgUploading] = useState(false);
+
+  const groupsPagination    = usePagination(groups, 8);
+  const servicesPagination  = usePagination(services, 10);
+
   useEffect(() => { loadAll(); }, []);
+
+  async function uploadImageFile(file, onUrl) {
+    try {
+      setImgUploading(true);
+      const fd = new FormData();
+      fd.append("image", file);
+      const result = await apiUpload("/upload/image", fd);
+      onUrl(result.url);
+    } catch (e) {
+      alert(e.message || "Image upload failed");
+    } finally {
+      setImgUploading(false);
+    }
+  }
+
+  function ImageField({ value, onChange, label = "Image" }) {
+    const ref = useRef();
+    return (
+      <div className="form-group" style={{ margin: 0 }}>
+        <label>{label}</label>
+        <div
+          onClick={() => !imgUploading && ref.current?.click()}
+          style={{
+            border: "2px dashed #cbd5e1",
+            borderRadius: 10,
+            padding: value ? "6px" : "18px 12px",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            cursor: imgUploading ? "not-allowed" : "pointer",
+            background: imgUploading ? "#f8fafc" : "#fff",
+            gap: 8, transition: "border-color .15s",
+            minHeight: value ? "auto" : 80,
+          }}
+          onMouseEnter={(e) => { if (!imgUploading) e.currentTarget.style.borderColor = "var(--deep)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; }}
+        >
+          {value ? (
+            <>
+              <img src={value} alt="preview" style={{ width: "100%", maxHeight: 100, objectFit: "cover", borderRadius: 6, display: "block" }} />
+              <span style={{ fontSize: 12, color: "#64748b", display: "flex", alignItems: "center", gap: 4 }}>
+                <Upload size={12} /> {imgUploading ? "Uploading…" : "Click to change"}
+              </span>
+            </>
+          ) : (
+            <>
+              <Upload size={20} color="#94a3b8" />
+              <span style={{ fontSize: 13, color: imgUploading ? "#94a3b8" : "#64748b", fontWeight: 500 }}>
+                {imgUploading ? "Uploading…" : "Click to upload image"}
+              </span>
+              <span style={{ fontSize: 11, color: "#94a3b8" }}>JPG, PNG, WEBP</span>
+            </>
+          )}
+          <input
+            ref={ref}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            disabled={imgUploading}
+            onChange={(e) => {
+              const f = e.target.files[0];
+              if (f) uploadImageFile(f, onChange);
+              e.target.value = "";
+            }}
+          />
+        </div>
+        {value && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onChange(""); }}
+            style={{ marginTop: 4, fontSize: 11, color: "#94a3b8", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            Remove image
+          </button>
+        )}
+      </div>
+    );
+  }
 
   async function loadAll() {
     const [g, s] = await Promise.all([
@@ -153,10 +235,11 @@ export default function AdminServicesPage() {
             <label>Starting Price ($)</label>
             <input type="number" value={newService.startingPrice} onChange={(e) => setNewService({ ...newService, startingPrice: e.target.value })} placeholder="300" />
           </div>
-          <div className="form-group">
-            <label>Image URL</label>
-            <input value={newService.imageUrl} onChange={(e) => setNewService({ ...newService, imageUrl: e.target.value })} placeholder="/assets/..." />
-          </div>
+          <ImageField
+            label="Featured Image"
+            value={newService.imageUrl}
+            onChange={(url) => setNewService((s) => ({ ...s, imageUrl: url }))}
+          />
         </div>
         <div className="form-group">
           <label>Description</label>
@@ -177,10 +260,11 @@ export default function AdminServicesPage() {
             <label>Group Name *</label>
             <input value={newGroup.name} onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })} placeholder="Website Services" />
           </div>
-          <div className="form-group">
-            <label>Image URL</label>
-            <input value={newGroup.imageUrl} onChange={(e) => setNewGroup({ ...newGroup, imageUrl: e.target.value })} placeholder="/assets/..." />
-          </div>
+          <ImageField
+            label="Group Image"
+            value={newGroup.imageUrl}
+            onChange={(url) => setNewGroup((g) => ({ ...g, imageUrl: url }))}
+          />
         </div>
         <div className="form-group">
           <label>Description</label>
@@ -198,7 +282,7 @@ export default function AdminServicesPage() {
         <h2 style={{ marginBottom: 16 }}>Service Groups ({groups.length})</h2>
         {groups.length === 0 ? (
           <p style={{ color: "var(--muted)" }}>No service groups yet.</p>
-        ) : groups.map((group) => (
+        ) : groupsPagination.paged.map((group) => (
           <div key={group.id}>
             {editGroupId === group.id ? (
               /* ── Inline edit form ── */
@@ -208,10 +292,10 @@ export default function AdminServicesPage() {
                     <label>Group Name *</label>
                     <input value={editGroupData.name} onChange={(e) => setEditGroupData({ ...editGroupData, name: e.target.value })} />
                   </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Image URL</label>
-                    <input value={editGroupData.imageUrl} onChange={(e) => setEditGroupData({ ...editGroupData, imageUrl: e.target.value })} placeholder="/assets/..." />
-                  </div>
+                  <ImageField
+                    value={editGroupData.imageUrl}
+                    onChange={(url) => setEditGroupData((d) => ({ ...d, imageUrl: url }))}
+                  />
                   <div className="form-group" style={{ margin: 0 }}>
                     <label>Display Order</label>
                     <input type="number" value={editGroupData.displayOrder} onChange={(e) => setEditGroupData({ ...editGroupData, displayOrder: Number(e.target.value) })} />
@@ -269,6 +353,7 @@ export default function AdminServicesPage() {
             )}
           </div>
         ))}
+        <Pagination {...groupsPagination} onPageChange={groupsPagination.setPage} />
       </section>
 
       {/* ── Services list ── */}
@@ -276,7 +361,7 @@ export default function AdminServicesPage() {
         <h2 style={{ marginBottom: 16 }}>Services ({services.length})</h2>
         {services.length === 0 ? (
           <p style={{ color: "var(--muted)" }}>No services yet.</p>
-        ) : services.map((svc) => (
+        ) : servicesPagination.paged.map((svc) => (
           <div key={svc.id}>
             {editServiceId === svc.id ? (
               /* ── Inline edit form ── */
@@ -296,10 +381,10 @@ export default function AdminServicesPage() {
                     <label>Starting Price ($)</label>
                     <input type="number" value={editServiceData.startingPrice} onChange={(e) => setEditServiceData({ ...editServiceData, startingPrice: e.target.value })} />
                   </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Image URL</label>
-                    <input value={editServiceData.imageUrl} onChange={(e) => setEditServiceData({ ...editServiceData, imageUrl: e.target.value })} placeholder="/assets/..." />
-                  </div>
+                  <ImageField
+                    value={editServiceData.imageUrl}
+                    onChange={(url) => setEditServiceData((d) => ({ ...d, imageUrl: url }))}
+                  />
                 </div>
                 <div className="form-group" style={{ marginBottom: 10 }}>
                   <label>Description</label>
@@ -354,6 +439,7 @@ export default function AdminServicesPage() {
             )}
           </div>
         ))}
+        <Pagination {...servicesPagination} onPageChange={servicesPagination.setPage} />
       </section>
     </div>
   );

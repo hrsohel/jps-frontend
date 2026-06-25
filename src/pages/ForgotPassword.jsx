@@ -120,7 +120,7 @@ export default function ForgotPassword({ setPage }) {
           )}
 
           <p className="auth-copyright">
-            © {new Date().getFullYear()} JPS Support Services. All rights reserved.
+            © {new Date().getFullYear()} JPS Core. All rights reserved.
           </p>
         </div>
       </div>

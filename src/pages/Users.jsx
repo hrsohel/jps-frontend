@@ -264,50 +264,52 @@ export default function UsersPage({ setPage, setSelectedUser }) {
           <p style={{ color: "#64748b" }}>Loading users...</p>
         ) : (
           <>
-          <table className="users-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Business</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Segment</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usersPagination.paged.length === 0 ? (
-                <tr><td colSpan="7" style={{ color: "#64748b", textAlign: "center" }}>No users found.</td></tr>
-              ) : (
-                usersPagination.paged.map((user) => (
-                  <tr key={user.id}>
-                    <td>{user.fullName || "N/A"}</td>
-                    <td>{user.businessName || "—"}</td>
-                    <td>{user.email}</td>
-                    <td>
-                      <span style={{ background: roleBadgeColor(user.role), color: "#fff", padding: "2px 8px", borderRadius: "10px", fontSize: "11px" }}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ color: user.status === "ACTIVE" ? "#0E9F6E" : "#ef4444" }}>
-                        {user.status}
-                      </span>
-                    </td>
-                    <td>{user.segment || "General"}</td>
-                    <td>
-                      <div className="table-actions">
-                        <button className="view-btn" onClick={() => { setSelectedUser(user); setPage("User Details"); }}>View</button>
-                        <button className="view-btn" onClick={() => { setEditingUser(user); setEditRole(user.role || "CLIENT"); setEditStatus(user.status || "ACTIVE"); setEditSegment(user.segment || "General"); }}>Edit</button>
-                        <button className="delete-btn" onClick={() => resetPassword(user.id, user.email)}>Reset Pwd</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <div className="users-table-wrap">
+            <table className="users-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Business</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Segment</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usersPagination.paged.length === 0 ? (
+                  <tr><td colSpan="7" style={{ color: "#64748b", textAlign: "center" }}>No users found.</td></tr>
+                ) : (
+                  usersPagination.paged.map((user) => (
+                    <tr key={user.id}>
+                      <td data-label="Name">{user.fullName || "N/A"}</td>
+                      <td data-label="Business">{user.businessName || "—"}</td>
+                      <td data-label="Email"><span className="users-table-email">{user.email}</span></td>
+                      <td data-label="Role">
+                        <span style={{ background: roleBadgeColor(user.role), color: "#fff", padding: "2px 8px", borderRadius: "10px", fontSize: "11px" }}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td data-label="Status">
+                        <span style={{ color: user.status === "ACTIVE" ? "#0E9F6E" : "#ef4444" }}>
+                          {user.status}
+                        </span>
+                      </td>
+                      <td data-label="Segment">{user.segment || "General"}</td>
+                      <td>
+                        <div className="table-actions">
+                          <button className="view-btn" onClick={() => { setSelectedUser(user); setPage("User Details"); }}>View</button>
+                          <button className="view-btn" onClick={() => { setEditingUser(user); setEditRole(user.role || "CLIENT"); setEditStatus(user.status || "ACTIVE"); setEditSegment(user.segment || "General"); }}>Edit</button>
+                          <button className="delete-btn" onClick={() => resetPassword(user.id, user.email)}>Reset Pwd</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
           <Pagination {...usersPagination} onPageChange={usersPagination.setPage} />
           </>
         )}

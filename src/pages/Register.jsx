@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-export default function Register({ setPage }) {
+export default function Register({ setPage, setUser }) {
   const [form, setForm] = useState({
     businessName: "",
     fullName: "",
@@ -57,8 +57,11 @@ export default function Register({ setPage }) {
         return;
       }
 
-      alert("Account created successfully! You can now log in.");
-      setPage("Login");
+      // Auto-login: save token and user, redirect to Dashboard
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      if (setUser) setUser(data.user);
+      setPage("Dashboard");
     } catch (error) {
       console.error(error);
       setError("Server error. Please try again.");
