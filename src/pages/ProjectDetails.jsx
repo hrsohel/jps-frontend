@@ -97,6 +97,30 @@ export default function ProjectDetails({ selectedProject, user }) {
     }
   }
 
+  async function handleApprove(fileId) {
+    try {
+      await apiPatch(`/upload/${fileId}/approve`, {});
+      loadFiles(projectId);
+    } catch (error) {
+      alert(error.message || "Unable to approve file");
+    }
+  }
+
+  async function handleReject(fileId) {
+    if (!confirm("Reject this file? This cannot be undone.")) return;
+    try {
+      await apiPatch(`/upload/${fileId}/reject`, {});
+      loadFiles(projectId);
+    } catch (error) {
+      alert(error.message || "Unable to reject file");
+    }
+  }
+
+  function fileUrl(f) {
+    const base = API_BASE_URL.replace(/\/api$/, "");
+    return `${base}/uploads/projects/${f.filename}`;
+  }
+
   async function sendMessage() {
     if (!newMessage.trim()) {
       alert("Please type a message first");
@@ -285,23 +309,55 @@ export default function ProjectDetails({ selectedProject, user }) {
                   <strong>{uploadedFile.originalName}</strong>
                   <br />
                   <small>{new Date(uploadedFile.createdAt).toLocaleDateString()}</small>
+                  {uploadedFile.approvalStatus === "PENDING_APPROVAL" && isStaff && (
+                    <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, background: "#fef3c7", color: "#92400e", borderRadius: 4, padding: "2px 7px" }}>
+                      PENDING CLIENT APPROVAL
+                    </span>
+                  )}
+                  {uploadedFile.approvalStatus === "REJECTED" && (
+                    <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, background: "#fee2e2", color: "#991b1b", borderRadius: 4, padding: "2px 7px" }}>
+                      REJECTED
+                    </span>
+                  )}
                 </div>
                 <div className="file-actions">
                   <a
-                    href={`${API_BASE_URL.replace("/api", "")}/${uploadedFile.path}`}
+                    href={fileUrl(uploadedFile)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="view-btn"
                   >
                     View
                   </a>
-                  <button
-                    type="button"
-                    className="delete-btn"
-                    onClick={() => handleDelete(uploadedFile.id)}
-                  >
-                    Delete
-                  </button>
+                  {!isStaff && uploadedFile.approvalStatus === "PENDING_APPROVAL" && (
+                    <>
+                      <button
+                        type="button"
+                        className="green-btn"
+                        style={{ fontSize: 12, padding: "4px 10px" }}
+                        onClick={() => handleApprove(uploadedFile.id)}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        className="delete-btn"
+                        style={{ fontSize: 12, padding: "4px 10px" }}
+                        onClick={() => handleReject(uploadedFile.id)}
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  {isStaff && (
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      onClick={() => handleDelete(uploadedFile.id)}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))

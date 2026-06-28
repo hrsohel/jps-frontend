@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { CreditCard, DollarSign, CheckCircle2, Clock, RefreshCw, AlertTriangle } from "lucide-react";
+import { CreditCard, DollarSign, CheckCircle2, Clock, RefreshCw, AlertTriangle, Key, Eye, EyeOff } from "lucide-react";
 import PageHeader from "../components/PageHeader";
-import { apiGet } from "../lib/api";
+import { apiGet, apiPut } from "../lib/api";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -22,6 +22,30 @@ export default function AdminPayments() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Stripe key editor state
+  const [secretKey, setSecretKey] = useState("");
+  const [publishableKey, setPublishableKey] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
+  const [savingKeys, setSavingKeys] = useState(false);
+  const [keySaved, setKeySaved] = useState(false);
+
+  async function saveKeys() {
+    if (!secretKey && !publishableKey) return;
+    try {
+      setSavingKeys(true);
+      if (secretKey) await apiPut("/settings", { key: "STRIPE_SECRET_KEY", value: secretKey });
+      if (publishableKey) await apiPut("/settings", { key: "STRIPE_PUBLISHABLE_KEY", value: publishableKey });
+      setSecretKey("");
+      setPublishableKey("");
+      setKeySaved(true);
+      setTimeout(() => setKeySaved(false), 3000);
+    } catch (e) {
+      alert(e.message || "Failed to save keys");
+    } finally {
+      setSavingKeys(false);
+    }
+  }
 
   useEffect(() => { load(); }, []);
 
@@ -162,6 +186,65 @@ export default function AdminPayments() {
           </div>
         </>
       ) : null}
+
+      {/* ── Editable API Keys ── */}
+      <div className="panel" style={{ marginTop: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+          <Key size={18} color="var(--deep)" />
+          <h3 style={{ margin: 0 }}>Update Stripe API Keys</h3>
+        </div>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 16 }}>
+          Paste new keys below. Leave a field blank to keep the existing key. Keys are saved to the database and override the server's .env file immediately — no restart required.
+        </p>
+
+        {keySaved && (
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "10px 14px", marginBottom: 14, color: "#15803d", fontSize: 13, fontWeight: 600 }}>
+            ✓ Keys updated successfully
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+            Secret Key (sk_live_… or rk_live_…)
+            <div style={{ position: "relative" }}>
+              <input
+                type={showSecret ? "text" : "password"}
+                value={secretKey}
+                onChange={(e) => setSecretKey(e.target.value)}
+                placeholder="Paste new secret key here"
+                style={{ width: "100%", paddingRight: 40, fontFamily: "monospace", fontSize: 12 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowSecret((v) => !v)}
+                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--muted)" }}
+              >
+                {showSecret ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </label>
+
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+            Publishable Key (pk_live_…)
+            <input
+              type="text"
+              value={publishableKey}
+              onChange={(e) => setPublishableKey(e.target.value)}
+              placeholder="Paste new publishable key here"
+              style={{ fontFamily: "monospace", fontSize: 12 }}
+            />
+          </label>
+
+          <button
+            className="green-btn"
+            onClick={saveKeys}
+            disabled={savingKeys || (!secretKey && !publishableKey)}
+            style={{ alignSelf: "flex-start" }}
+          >
+            {savingKeys ? "Saving…" : "Save Keys"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

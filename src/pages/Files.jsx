@@ -40,8 +40,9 @@ function formatDate(iso) {
 }
 
 function fileUrl(f) {
-  const base = API_BASE_URL.replace("/api", "");
-  return `${base}/${f.path.replace(/\\/g, "/")}`;
+  // Replace only the trailing /api — not any /api inside the subdomain (e.g. //api.domain.com)
+  const base = API_BASE_URL.replace(/\/api$/, "");
+  return `${base}/uploads/projects/${f.filename}`;
 }
 
 export default function Files({ user }) {
