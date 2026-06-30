@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, Plus, X } from "lucide-react";
+import { AlertCircle, Plus, X, Trash2 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import Pagination, { usePagination } from "../components/Pagination";
-import { apiGet, apiPatch, apiPost } from "../lib/api";
+import { apiGet, apiPatch, apiPost, apiDelete } from "../lib/api";
 
 const BLANK_INV = {
   clientEmail: "", clientName: "", serviceDescription: "", projectId: "",
@@ -38,6 +38,16 @@ export default function Invoices({ setPage, setSelectedInvoice, user }) {
       loadInvoices();
     } catch (error) {
       alert(error.message || "Unable to update invoice");
+    }
+  }
+
+  async function deleteInvoice(id) {
+    if (!confirm("Delete this invoice? This cannot be undone.")) return;
+    try {
+      await apiDelete(`/invoices/${id}`);
+      loadInvoices();
+    } catch (error) {
+      alert(error.message || "Unable to delete invoice");
     }
   }
 
@@ -154,7 +164,11 @@ export default function Invoices({ setPage, setSelectedInvoice, user }) {
               </label>
               <label>
                 Service Amount ($)
-                <input type="number" min="0" step="0.01" value={form.serviceAmount} onChange={(e) => set("serviceAmount", e.target.value)} placeholder="0.00" />
+                <input type="number" min="0" step="0.01" value={form.serviceAmount} onChange={(e) => {
+                  const amt = e.target.value;
+                  set("serviceAmount", amt);
+                  set("taxAmount", (Number(amt) * 0.06).toFixed(2));
+                }} placeholder="0.00" />
               </label>
               <label>
                 Domain Amount ($)
@@ -240,25 +254,38 @@ export default function Invoices({ setPage, setSelectedInvoice, user }) {
                   </>
                 )}
 
-                {isStaff && (
+                {isStaff ? (
                   <div className="card-actions" style={{ marginTop: "8px" }}>
                     {invoice.status === "DRAFT" && (
-                      <button
-                        className="view-btn"
-                        onClick={() => updateStatus(invoice.id, "sent")}
-                      >
+                      <button className="view-btn" onClick={() => updateStatus(invoice.id, "sent")}>
                         Mark Sent
                       </button>
                     )}
                     {invoice.status !== "PAID" && (
-                      <button
-                        className="green-btn"
-                        onClick={() => updateStatus(invoice.id, "paid")}
-                      >
+                      <button className="green-btn" onClick={() => updateStatus(invoice.id, "paid")}>
                         Mark Paid
                       </button>
                     )}
+                    <button
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444", padding: "4px" }}
+                      title="Delete Invoice"
+                      onClick={() => deleteInvoice(invoice.id)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
+                ) : (
+                  invoice.status !== "PAID" && (
+                    <div style={{ marginTop: 8 }}>
+                      <button
+                        className="green-btn"
+                        style={{ fontSize: 13, padding: "6px 16px" }}
+                        onClick={() => { setSelectedInvoice(invoice); setPage("Invoice Details"); }}
+                      >
+                        Pay Now
+                      </button>
+                    </div>
+                  )
                 )}
               </div>
             </div>

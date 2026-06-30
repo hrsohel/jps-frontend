@@ -165,7 +165,7 @@ export default function ServiceRequests({ user }) {
               </select>
             </label>
 
-            {form.serviceGroup === "Website Services" && (
+            {form.serviceGroup && (
               <label className="form-label">
                 Industry Type
                 <select className="form-select" value={form.industryType} onChange={(e) => set("industryType", e.target.value)}>
@@ -175,7 +175,7 @@ export default function ServiceRequests({ user }) {
               </label>
             )}
 
-            <label className="form-label" style={{ gridColumn: form.serviceGroup === "Website Services" ? "auto" : "1/-1" }}>
+            <label className="form-label" style={{ gridColumn: form.serviceGroup ? "auto" : "1/-1" }}>
               Project Title *
               <input className="form-select" value={form.projectTitle} onChange={(e) => set("projectTitle", e.target.value)} placeholder="e.g. New Business Website" required />
             </label>

@@ -271,7 +271,10 @@ export default function ProjectDetails({ selectedProject, user }) {
             </label>
             <label>
               Service Amount ($) *
-              <input type="number" min="0" step="0.01" value={invoiceAmount} onChange={(e) => setInvoiceAmount(e.target.value)} placeholder="0.00" />
+              <input type="number" min="0" step="0.01" value={invoiceAmount} onChange={(e) => {
+                setInvoiceAmount(e.target.value);
+                setInvoiceTax((Number(e.target.value) * 0.06).toFixed(2));
+              }} placeholder="0.00" />
             </label>
             <label>
               Tax ($)

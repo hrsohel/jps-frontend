@@ -211,11 +211,16 @@ export default function App() {
 
   // Listen for forced logout from API client
   useEffect(() => {
-    function onAuthLogout() {
-      handleLogout();
-    }
+    function onAuthLogout() { handleLogout(); }
     window.addEventListener("auth:logout", onAuthLogout);
     return () => window.removeEventListener("auth:logout", onAuthLogout);
+  }, []);
+
+  // Listen for notification open event from dashboard
+  useEffect(() => {
+    function onOpenNotifications() { setShowNotifications(true); }
+    window.addEventListener("openNotifications", onOpenNotifications);
+    return () => window.removeEventListener("openNotifications", onOpenNotifications);
   }, []);
 
   async function loadNotifications() {
@@ -470,8 +475,8 @@ export default function App() {
         <footer className="app-footer">
           <span>© {new Date().getFullYear()} JPSCore Inc. All rights reserved.</span>
           <div className="app-footer-links">
-            <button className="app-footer-link">Terms of Service</button>
-            <button className="app-footer-link">Privacy Policy</button>
+            <a className="app-footer-link" href="http://jpscoreinc.com/terms-of-services" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+            <a className="app-footer-link" href="http://jpscoreinc.com/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
           </div>
         </footer>
       </section>
