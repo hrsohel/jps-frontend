@@ -262,7 +262,7 @@ export default function Dashboard({ user, setPage }) {
               description="Unread updates"
               icon={<Bell size={20} color="#fff" />}
               color="#0749B3"
-              onClick={() => go("Settings")}
+              onClick={() => window.dispatchEvent(new CustomEvent("openNotifications"))}
             />
           </>
         )}
@@ -409,6 +409,8 @@ export default function Dashboard({ user, setPage }) {
                 title={group.name}
                 image={group.imageUrl || null}
                 description={group.description || ""}
+                onRequest={() => go("Request Service")}
+                onSchedule={() => go("Appointments")}
               />
             ))}
           </div>
