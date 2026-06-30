@@ -3,6 +3,8 @@ export default function ServiceCard({
   description,
   image,
   quickServices = [],
+  onRequest,
+  onSchedule,
 }) {
   return (
     <div className="service-card">
@@ -19,8 +21,8 @@ export default function ServiceCard({
         <p>{description}</p>
 
         <div className="card-actions">
-          <button>Request Service</button>
-          <button className="green-outline">Schedule</button>
+          <button onClick={onRequest}>Request Service</button>
+          <button className="green-outline" onClick={onSchedule}>Schedule</button>
         </div>
       </div>
     </div>
